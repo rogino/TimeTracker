@@ -8,7 +8,9 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import nz.ac.uclive.rog19.seng440.assignment1.model.*
+import nz.ac.uclive.rog19.seng440.assignment1.model.Project
+import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntry
+import nz.ac.uclive.rog19.seng440.assignment1.model.mockModel
 import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.TimeTrackerTheme
 import java.time.Clock
 import java.time.Instant
@@ -20,14 +22,20 @@ fun TimeEntryListView(
     entries: List<TimeEntry>,
     projects: Map<Int, Project>,
     zoneId: ZoneId = Clock.systemDefaultZone().zone,
-    now: State<Instant> = mutableStateOf(Instant.now())) {
+    now: State<Instant> = mutableStateOf(Instant.now())
+) {
     LazyColumn(modifier = modifier) {
         itemsIndexed(items = entries) { index, entry ->
             if (index != 0) {
                 Divider()
             }
             // Passing null for `now` means only ongoing view gets re-rendered when date changes
-            TimeEntryListItem(timeEntry = entry, projects = projects, zoneId = zoneId, now = if (entry.isOngoing) now.value else null)
+            TimeEntryListItem(
+                timeEntry = entry,
+                projects = projects,
+                zoneId = zoneId,
+                now = if (entry.isOngoing) now.value else null
+            )
         }
     }
 }

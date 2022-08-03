@@ -1,6 +1,5 @@
 package nz.ac.uclive.rog19.seng440.assignment1
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -14,7 +13,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import nz.ac.uclive.rog19.seng440.assignment1.model.*
+import nz.ac.uclive.rog19.seng440.assignment1.model.Project
+import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntry
+import nz.ac.uclive.rog19.seng440.assignment1.model.mockModel
 import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.TimeTrackerTheme
 import java.time.*
 import java.time.format.DateTimeFormatter
@@ -25,8 +26,9 @@ fun TimeEntryListItem(
     modifier: Modifier = Modifier,
     timeEntry: TimeEntry,
     projects: Map<Int, Project>,
-                      zoneId: ZoneId = Clock.systemDefaultZone().zone,
-                      now: Instant? = Instant.now()) {
+    zoneId: ZoneId = Clock.systemDefaultZone().zone,
+    now: Instant? = Instant.now()
+) {
     val project = projects[timeEntry.projectId]
     val zonedStart = ZonedDateTime.ofInstant(timeEntry.startTime, zoneId)
 
@@ -39,39 +41,44 @@ fun TimeEntryListItem(
     }
 
     var endTime = timeEntry.endTime ?: now
-    var durationText = endTime?.let { durationFormatter(
-        duration = Duration.between(timeEntry.startTime, it),
-        // show all components if ongoing
-        numComponents = if (timeEntry.isOngoing) 10 else 2
-    ) }
+    var durationText = endTime?.let {
+        durationFormatter(
+            duration = Duration.between(timeEntry.startTime, it),
+            // show all components if ongoing
+            numComponents = if (timeEntry.isOngoing) 10 else 2
+        )
+    }
 
-    Column(modifier = Modifier.padding(vertical = 4.dp).then(modifier)) {
+    Column(modifier = Modifier
+        .padding(vertical = 4.dp)
+        .then(modifier)) {
         Row() {
             Text(text = timeEntry.description)
             durationText?.also {
                 Spacer(modifier = Modifier.weight(1f))
 //            Text(zonedStart.format(DateTimeFormatter.ISO_LOCAL_DATE))
                 Text(text = durationText)
-             }
+            }
         }
 
         Row {
             project?.also { project ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier
-                        .padding(end = 4.dp)
-                        .size(12.dp)
-                        .clip(CircleShape)
-                        .border(
-                            width = 1.dp,
-                            color = if (isSystemInDarkTheme()) Color.LightGray else Color.DarkGray,
-                            shape = CircleShape
-                        )
-                        .background(project.colorCompose)
+                    Box(
+                        modifier = Modifier
+                            .padding(end = 4.dp)
+                            .size(12.dp)
+                            .clip(CircleShape)
+                            .border(
+                                width = 1.dp,
+                                color = if (isSystemInDarkTheme()) Color.LightGray else Color.DarkGray,
+                                shape = CircleShape
+                            )
+                            .background(project.colorCompose)
                     )
                     Text(text = project.name)
                 }
-            } ?: run {  }
+            } ?: run { }
             Spacer(modifier = Modifier.weight(1f))
             Row() {
                 Text(text = timeText)
@@ -89,7 +96,10 @@ fun TimeEntryListItem(
 fun TimeEntryListItem_Preview() {
     TimeTrackerTheme {
         Column {
-            TimeEntryListItem(timeEntry = mockModel.timeEntries.first(), projects = mockModel.projects)
+            TimeEntryListItem(
+                timeEntry = mockModel.timeEntries.first(),
+                projects = mockModel.projects
+            )
 
             mockModel.currentEntry?.also { timeEntry ->
                 TimeEntryListItem(timeEntry = timeEntry, projects = mockModel.projects)

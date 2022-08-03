@@ -4,10 +4,11 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
-import java.util.*
 
-class GodModel(projects: Map<Int, Project> = emptyMap(),
-               timeEntries: List<TimeEntry>) {
+class GodModel(
+    projects: Map<Int, Project> = emptyMap(),
+    timeEntries: List<TimeEntry>
+) {
 
 
 
@@ -22,10 +23,11 @@ class GodModel(projects: Map<Int, Project> = emptyMap(),
     )
 }
 
-val mockModel = GodModel(listOf(
-    Project(1, "Project Name", "#FF0000"),
-    Project(3, "SENG440", "#A3B081"),
-),
+val mockModel = GodModel(
+    listOf(
+        Project(1, "Project Name", "#FF0000"),
+        Project(3, "SENG440", "#A3B081"),
+    ),
     listOf(
         TimeEntry(
             10, "Entry description",
@@ -42,7 +44,10 @@ val mockModel = GodModel(listOf(
         TimeEntry(
             12, "Android DateTime stuff",
             DateTimeFormatter.ISO_DATE_TIME.format(
-                ZonedDateTime.ofInstant(Instant.now().minusSeconds((60 * 60 + 12).toLong()), ZoneOffset.UTC)
+                ZonedDateTime.ofInstant(
+                    Instant.now().minusSeconds((60 * 60 + 12).toLong()),
+                    ZoneOffset.UTC
+                )
             ),
             null,
             3, arrayOf("Assignment", "Coding")

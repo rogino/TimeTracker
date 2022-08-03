@@ -24,7 +24,7 @@ fun durationFormatter(duration: Duration, numComponents: Int = 2): String {
         Pair(unitValue, shortSuffix)
     }
 
-    for((unitValue, shortSuffix) in unitized.reversed()) {
+    for ((unitValue, shortSuffix) in unitized.reversed()) {
         if (!bla && unitValue == 0) {
             continue
         }

@@ -29,9 +29,13 @@ class TimeEntry(
     /// -startTime.epoch for running timers
 //    var duration: Int = duration
 
-    val duration: Duration? get() {
-        return Duration.between(startTime, if (endTime == null) Calendar.getInstance().toInstant() else endTime)
-    }
+    val duration: Duration?
+        get() {
+            return Duration.between(
+                startTime,
+                if (endTime == null) Calendar.getInstance().toInstant() else endTime
+            )
+        }
 
     val isOngoing get() = endTime == null
 
