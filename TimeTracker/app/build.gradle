@@ -64,5 +64,5 @@ dependencies {
     debugImplementation "androidx.compose.ui:ui-test-manifest:$compose_version"
 
 //    https://stackoverflow.com/questions/36000997/android-n-java8-java-time
-    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:1.0.4'
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:1.0.9'
 }
