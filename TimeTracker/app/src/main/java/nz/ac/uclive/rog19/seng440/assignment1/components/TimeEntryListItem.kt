@@ -1,6 +1,8 @@
 package nz.ac.uclive.rog19.seng440.assignment1
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Text
@@ -8,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import nz.ac.uclive.rog19.seng440.assignment1.model.*
@@ -17,9 +20,12 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
 @Composable
-fun TimeEntryListItem(timeEntry: TimeEntry, projects: Map<Int, Project>,
+fun TimeEntryListItem(
+    modifier: Modifier = Modifier,
+    timeEntry: TimeEntry,
+    projects: Map<Int, Project>,
                       zoneId: ZoneId = Clock.systemDefaultZone().zone,
-                      now: Instant = Instant.now()) {
+                      now: Instant? = Instant.now()) {
     val project = projects[timeEntry.projectId]
     val zonedStart = ZonedDateTime.ofInstant(timeEntry.startTime, zoneId)
 
@@ -31,23 +37,37 @@ fun TimeEntryListItem(timeEntry: TimeEntry, projects: Map<Int, Project>,
         timeText += " to ${zonedEnd.format(timeFormatter)}"
     }
 
-    var durationText = durationFormatter(Duration.between(timeEntry.startTime, timeEntry.endTime ?: now))
+    var endTime = timeEntry.endTime ?: now
+    var durationText = endTime?.let { durationFormatter(
+        duration = Duration.between(timeEntry.startTime, it),
+        // show all components if ongoing
+        numComponents = if (timeEntry.isOngoing) 10 else 2
+    ) }
 
-    Column() {
+    Column(modifier = Modifier.padding(vertical = 4.dp).then(modifier)) {
         Row() {
             Text(text = timeEntry.description)
-            Spacer(modifier = Modifier.weight(1f))
+            durationText?.also {
+                Spacer(modifier = Modifier.weight(1f))
 //            Text(zonedStart.format(DateTimeFormatter.ISO_LOCAL_DATE))
-            Text(text = durationText)
+                Text(text = durationText)
+             }
         }
 
         Row {
             project?.also { project ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(modifier = Modifier
-                        .size(10.dp)
+                        .padding(end = 4.dp)
+                        .size(12.dp)
                         .clip(CircleShape)
-                        .background(project.colorCompose) )
+                        .border(
+                            width = 1.dp,
+                            color = if (isSystemInDarkTheme()) Color.LightGray else Color.DarkGray,
+                            shape = CircleShape
+                        )
+                        .background(project.colorCompose)
+                    )
                     Text(text = project.name)
                 }
             } ?: run {  }
@@ -67,6 +87,12 @@ fun TimeEntryListItem(timeEntry: TimeEntry, projects: Map<Int, Project>,
 @Composable
 fun TimeEntryListItem_Preview() {
     TimeTrackerTheme {
-        TimeEntryListItem(timeEntry = mockModel.timeEntries.first(), projects = mockModel.projects)
+        Column {
+            TimeEntryListItem(timeEntry = mockModel.timeEntries.first(), projects = mockModel.projects)
+
+            mockModel.currentEntry?.also { timeEntry ->
+                TimeEntryListItem(timeEntry = timeEntry, projects = mockModel.projects)
+            }
+        }
     }
 }

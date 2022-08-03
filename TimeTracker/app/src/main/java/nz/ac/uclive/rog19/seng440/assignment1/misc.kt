@@ -25,6 +25,9 @@ fun durationFormatter(duration: Duration, numComponents: Int = 2): String {
         if (!bla && unitValue == 0) {
             continue
         }
+
+        // even if value is 0, show it
+        bla = true
         if (out.isNotEmpty()) {
             out += " "
         }
