@@ -3,6 +3,7 @@ package nz.ac.uclive.rog19.seng440.assignment1
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,6 +13,8 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import nz.ac.uclive.rog19.seng440.assignment1.model.GodModel
 import nz.ac.uclive.rog19.seng440.assignment1.model.mockModel
 import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.TimeTrackerTheme
@@ -56,6 +59,13 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         handler.post(updateTask)
+        lifecycleScope.launch {
+            val result = ApiRequest().currentTimeEntry()
+            if (result != null) {
+                Log.d(TAG, result.toString(2))
+            }
+        }
+
     }
 
     override fun onStop() {
