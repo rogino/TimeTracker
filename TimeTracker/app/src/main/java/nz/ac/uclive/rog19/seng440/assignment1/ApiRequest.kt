@@ -4,12 +4,33 @@ import android.util.Base64
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.*
+import okhttp3.Request.Builder
 import org.json.JSONObject
 import java.io.BufferedInputStream
 import java.io.DataOutputStream
+import java.io.IOException
 import java.net.URL
 import java.nio.charset.Charset
 import javax.net.ssl.HttpsURLConnection
+
+
+class BasicAuthInterceptor(user: String, password: String) :
+    Interceptor {
+    private val credentials: String
+
+    @Throws(IOException::class)
+    override fun intercept(chain: Interceptor.Chain): Response {
+        val request: Request = chain.request()
+        val authenticatedRequest = request.newBuilder()
+            .header("Authorization", credentials).build()
+        return chain.proceed(authenticatedRequest)
+    }
+
+    init {
+        credentials = Credentials.basic(user, password)
+    }
+}
 
 class ApiRequest {
     val domain: String = "https://api.track.toggl.com"
@@ -19,78 +40,47 @@ class ApiRequest {
 
     var workspaceId: Int = WORKSPACE_ID
 
+    val client: OkHttpClient
+    init {
+        client = OkHttpClient.Builder()
+            .addInterceptor(BasicAuthInterceptor(apiKey, "api_token"))
+        .build();
+    }
+
     suspend fun currentTimeEntry(): JSONObject? {
-        return getJson(URL("${domain}/${rootPath}/me/time_entries/current"))
+        return getJson("${domain}/${rootPath}/me/time_entries/current")
     }
 
-    val authHeader: String get() {
-        return String(Base64.encode("${apiKey}:api_token".toByteArray(), Base64.NO_WRAP))
-    }
-
-    suspend fun getJson(url: URL): JSONObject? {
-        Log.d(TAG, url.toString())
-        Log.d(TAG, url.authority)
+    suspend fun getJson(url: String): JSONObject? {
         val result = withContext(Dispatchers.IO) {
-            val connection = url.openConnection() as HttpsURLConnection
-            connection.setRequestProperty("Authorization", authHeader)
-            connection.doOutput = true
+            val request: Request = Builder()
+                .url(url)
+                .build()
 
-            connection.connect()
-
-            val status: Int = connection.responseCode
-
-            Log.d(TAG, "RESPONE CODE ${status}")
-            if (status == HttpsURLConnection.HTTP_OK) {
-                val header: String = connection.getHeaderField("x-request-id")
-                Log.d(TAG, header)
-            }
-
-
+            Log.d(TAG, request.headers.toString())
+            var response: Response? = null
             try {
-                val json = BufferedInputStream(connection.inputStream).readBytes()
-                    .toString(Charset.defaultCharset())
-                JSONObject(json)
+                response = client.newCall(request).execute()
+                when (response.code) {
+                    200 -> {
+                        Log.d(TAG, response.headers.toString())
+                        val json = response.body!!.string()
+                        JSONObject(json)
+                    }
+                    429 -> {
+                        Log.d(TAG, "RATE LIMITING")
+                        null
+                    }
+                    else -> {
+                        Log.d(TAG, response.body!!.string())
+                        null
+                    }
+                }
             } catch(error: Error) {
                 error.printStackTrace()
                 null
             } finally {
-                connection.disconnect()
-            }
-        }
-        return result
-    }
-
-    suspend fun postJson(url: URL, body: String): JSONObject? {
-        Log.d(TAG, url.toString())
-        Log.d(TAG, url.authority)
-        val result = withContext(Dispatchers.IO) {
-            val connection = url.openConnection() as HttpsURLConnection
-
-            connection.setRequestProperty("Content-Type", "application/json");
-            connection.doOutput = true
-            connection.doInput = true
-
-            val localDataOutputStream = DataOutputStream(connection.outputStream)
-            localDataOutputStream.writeBytes(body.toString())
-            localDataOutputStream.flush()
-            localDataOutputStream.close()
-
-            val status: Int = connection.responseCode
-
-            Log.d(TAG, "RESPONE CODE ${status}")
-            if (status == HttpsURLConnection.HTTP_OK) {
-                val header: String = connection.getHeaderField("x-request-id")
-                Log.d(TAG, header)
-            }
-            try {
-                val json = BufferedInputStream(connection.inputStream).readBytes()
-                    .toString(Charset.defaultCharset())
-                JSONObject(json)
-            } catch(error: Error) {
-                error.printStackTrace()
-                null
-            } finally {
-                connection.disconnect()
+                response?.close()
             }
         }
         return result
