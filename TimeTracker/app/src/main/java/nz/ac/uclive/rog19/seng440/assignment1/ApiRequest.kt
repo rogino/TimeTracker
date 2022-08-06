@@ -65,7 +65,12 @@ class ApiRequest {
                     200 -> {
                         Log.d(TAG, response.headers.toString())
                         val json = response.body!!.string()
-                        JSONObject(json)
+                        if (json == "null") {
+                            // No timer currently active
+                            null
+                        } else {
+                            JSONObject(json)
+                        }
                     }
                     429 -> {
                         Log.d(TAG, "RATE LIMITING")
