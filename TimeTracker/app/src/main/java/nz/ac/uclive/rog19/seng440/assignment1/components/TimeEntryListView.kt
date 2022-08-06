@@ -6,6 +6,9 @@ import androidx.compose.material.Divider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import nz.ac.uclive.rog19.seng440.assignment1.model.Project
@@ -19,8 +22,8 @@ import java.time.ZoneId
 @Composable
 fun TimeEntryListView(
     modifier: Modifier = Modifier,
-    entries: List<TimeEntry>,
-    projects: Map<Long, Project>,
+    entries: SnapshotStateList<TimeEntry>,
+    projects: SnapshotStateMap<Long, Project>,
     zoneId: ZoneId = Clock.systemDefaultZone().zone,
     now: State<Instant> = mutableStateOf(Instant.now())
 ) {
@@ -44,7 +47,9 @@ fun TimeEntryListView(
 @Composable
 fun TimeEntryListView_Preview() {
     TimeTrackerTheme {
-        TimeEntryListView(entries = mockModel.timeEntries, projects = mockModel.projects)
+        TimeEntryListView(
+            entries = mockModel.timeEntries,
+            projects = mockModel.projects)
 
     }
 }

@@ -1,31 +1,41 @@
 package nz.ac.uclive.rog19.seng440.assignment1.model
 
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.snapshots.SnapshotStateMap
+import java.lang.reflect.TypeVariable
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 class GodModel(
-    projects: MutableMap<Long, Project>,
-    timeEntries: MutableList<TimeEntry>
+    projects: Map<Long, Project>,
+    timeEntries: List<TimeEntry>
 ) {
-    var projects: MutableMap<Long, Project> = projects
-    var timeEntries: MutableList<TimeEntry> = timeEntries
+    var projects = mutableStateMapOf<Long, Project>()
+    var timeEntries = mutableStateListOf<TimeEntry>()
+
+    init {
+        this.projects.putAll(projects)
+        this.timeEntries.addAll(timeEntries)
+    }
 
     val currentEntry: TimeEntry? get() = timeEntries.first { it.isOngoing }
 
     constructor(projects: List<Project>, timeEntries: List<TimeEntry>) : this(
-        projects = projects.associateBy { it.id }.toMutableMap(),
-        timeEntries = timeEntries.toMutableList()
+        projects = projects.associateBy { it.id },
+        timeEntries = timeEntries
     )
 }
 
 val mockModel = GodModel(
-    mutableListOf(
+    listOf(
         Project(1, "Project Name", "#FF0000"),
         Project(3, "SENG440", "#A3B081"),
     ),
-    mutableListOf(
+    listOf(
         TimeEntry(
             10, "Entry description",
             "2022-07-23T07:54:35+00:00", "2022-07-23T08:10:02Z",
