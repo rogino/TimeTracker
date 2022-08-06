@@ -11,6 +11,9 @@ import java.time.OffsetDateTime
 import java.time.format.DateTimeParseException
 import java.util.*
 
+val APP_IDENTIFIER = "nz.ac.uclive.rog19.seng440.assignment1.timetracker"
+
+
 // https://api.track.toggl.com/api/v9/me/time_entries/current
 // https://api.track.toggl.com/api/v9/me/time_entries
 data class TimeEntry(
@@ -29,11 +32,28 @@ data class TimeEntry(
 
     /// see also tag_ids: [Long]
     @Json(name = "tags")
-    var tagNames: Array<String>? = null
+    var tagNames: Array<String>? = null,
+
+    @Json(name = "created_with")
+    var createdWith: String = APP_IDENTIFIER,
+
+    @Json(name = "wid")
+    var workspaceId: Int? = null
 ) {
     /// Duration in seconds
     /// -startTime.epoch for running timers
 //    var duration: Long = duration
+
+    @Json(name = "duration")
+    val durationSeconds: Long? get() {
+        if (isOngoing) {
+            return -startTime.epochSecond
+        }
+        // Duration necessary for stopping a timer
+        return duration?.seconds
+    }
+
+    @Json(ignored = true)
     val duration: Duration?
         get() {
             return Duration.between(
@@ -42,6 +62,7 @@ data class TimeEntry(
             )
         }
 
+    @Json(ignored = true)
     val isOngoing get() = endTime == null
 
     constructor(
@@ -50,20 +71,50 @@ data class TimeEntry(
         startTime: String,
         endTime: String? = null,
         projectId: Long? = null,
-        tagNames: Array<String> = emptyArray()
+        tagNames: Array<String> = emptyArray(),
+        workspaceId: Int? = null
     ) : this(
         id = id, description = description,
         startTime = OffsetDateTime.parse(startTime).toInstant(),
         endTime = if (endTime == null) null else OffsetDateTime.parse(endTime).toInstant(),
-        projectId = projectId, tagNames = tagNames
+        projectId = projectId, tagNames = tagNames,
+        workspaceId = workspaceId
     )
 }
+
+//data class TimeEntryDto(
+//    var id: Long? = null,
+//
+//    var description: String = "",
+//
+//    @Json(name = "start")
+//    var startTime: Instant = Calendar.getInstance().toInstant(),
+//
+//    @Json(name = "stop")
+//    var endTime: Instant? = null,
+//
+//    @Json(name = "project_id")
+//    var projectId: Long? = null,
+//
+//    @Json(name = "tag_ids")
+//    var tagIds: Array<String>? = null,
+//
+//    @Json(name = "tags")
+//    var tagNames: Array<String>? = null,
+//
+//    @Json(name = "created_with")
+//    var createdWith: String = APP_IDENTIFIER,
+//
+//    @Json(name = "wid")
+//    var workspaceId: Int? = null
+//) {
+//}
 
 val DateTimeConverter = object: Converter {
     override fun canConvert(cls: Class<*>) = cls == Instant::class.java
     override fun toJson(value: Any): String {
         if (value is Instant) {
-            return value.toString()
+            return "\"${value.toString()}\""
         }
         return "null"
     }

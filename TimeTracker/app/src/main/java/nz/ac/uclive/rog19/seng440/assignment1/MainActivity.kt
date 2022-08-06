@@ -15,12 +15,12 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import nz.ac.uclive.rog19.seng440.assignment1.model.GodModel
+import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntry
 import nz.ac.uclive.rog19.seng440.assignment1.model.mockModel
 import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.TimeTrackerTheme
 import java.time.Instant
 
 // https://developer.android.com/studio/write/java8-support-table
-
 
 class MainActivity : ComponentActivity() {
     private lateinit var model: GodModel
@@ -60,11 +60,18 @@ class MainActivity : ComponentActivity() {
         handler.post(updateTask)
         lifecycleScope.launch {
 //            ApiRequest().getCurrentTimeEntry()?.let {
-//                model.timeEntries.add(it)
+//                it.endTime = Instant.now()
+//                ApiRequest().updateTimeEntry(it)
 //            }
+//            ApiRequest().newTimeEntry(TimeEntry(description="TEST", startTime = Instant.now().minusSeconds(60), endTime = Instant.now()
+//            ))
+            ApiRequest().getProjects()?.let {
+                model.projects.clear()
+                model.projects.putAll(it.associateBy { it.id })
+            }
             ApiRequest().getTimeEntries(
-                startDate = Instant.now().minusSeconds(60 * 60 * 24 * 9),
-                endDate = Instant.now().minusSeconds(60 * 60 * 24 * 8),
+                startDate = Instant.now().minusSeconds(60 * 60 * 24 * 1),
+                endDate = Instant.now().minusSeconds(60 * 60 * 24 * 0),
             )?.let {
                 model.timeEntries.clear()
                 model.timeEntries.addAll(it)

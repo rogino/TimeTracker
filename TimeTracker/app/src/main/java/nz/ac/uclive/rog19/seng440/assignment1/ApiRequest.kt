@@ -5,10 +5,13 @@ import com.beust.klaxon.Klaxon
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import nz.ac.uclive.rog19.seng440.assignment1.model.DateTimeConverter
+import nz.ac.uclive.rog19.seng440.assignment1.model.Project
 import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntry
 import okhttp3.*
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request.Builder
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
@@ -55,6 +58,21 @@ class ApiRequest {
 
     val jsonConverter = Klaxon().converter(DateTimeConverter)
 
+    val jsonType = "application/json; charset=utf-8".toMediaType()
+
+    suspend fun getTags(): List<Project>? {
+        get("${domain}/${rootPath}/workspaces/${workspaceId}/projects")?.let {
+            return jsonConverter.parseArray<Project>(it)
+        }
+        return null
+    }
+    suspend fun getProjects(): List<Project>? {
+        get("${domain}/${rootPath}/workspaces/${workspaceId}/projects")?.let {
+            return jsonConverter.parseArray<Project>(it)
+        }
+        return null
+    }
+
     suspend fun getCurrentTimeEntry(): TimeEntry? {
         get("${domain}/${rootPath}/me/time_entries/current")?.let {
             if (it != "null") {
@@ -65,9 +83,34 @@ class ApiRequest {
         return null
     }
 
-    suspend fun getTimeEntries(startDate: Instant? = null,
-    endDate: Instant? = null,
-    zoneId: ZoneId = Clock.systemDefaultZone().zone): List<TimeEntry>? {
+    suspend fun updateTimeEntry(entry: TimeEntry): TimeEntry? {
+        var url = buildUrl
+            .addPathSegments("workspaces/${workspaceId}/time_entries/${entry.id}")
+            .build()
+        Log.d(TAG, "UPDATE TIME ENTRY: ${url}")
+        Log.d(TAG, jsonConverter.toJsonString(entry))
+        post(url, jsonConverter.toJsonString(entry).toRequestBody(jsonType), put = true)?.let {
+            return jsonConverter.parse<TimeEntry>(it)
+        }
+        return null
+    }
+
+    suspend fun newTimeEntry(entry: TimeEntry): TimeEntry? {
+        if (entry.workspaceId == null) {
+            entry.workspaceId = WORKSPACE_ID
+        }
+        var url = buildUrl
+            .addPathSegments("workspaces/${workspaceId}/time_entries")
+            .build()
+        Log.d(TAG, jsonConverter.toJsonString(entry))
+        post(url, jsonConverter.toJsonString(entry).toRequestBody(jsonType))?.let {
+            return jsonConverter.parse<TimeEntry>(it)
+        }
+        return null
+    }
+
+
+    suspend fun getTimeEntries(startDate: Instant? = null, endDate: Instant? = null): List<TimeEntry>? {
         var url = buildUrl.addPathSegments("me/time_entries")
         startDate?.let {
             url = if (endDate == null) {
@@ -103,6 +146,47 @@ class ApiRequest {
                 .url(url)
                 .build()
 
+            var response: Response? = null
+            try {
+                response = client.newCall(request).execute()
+                when (response.code) {
+                    200 -> {
+                        response.body!!.string()
+                    }
+                    429 -> {
+                        Log.d(TAG, "RATE LIMITING")
+                        null
+                    }
+                    else -> {
+                        Log.e(TAG, "ERROR ${response.code} MAKING REQUEST TO ${url.toString()}")
+                        Log.e(TAG, response.headers!!.toString())
+                        Log.e(TAG, response.body!!.string())
+                        null
+                    }
+                }
+            } catch (error: Error) {
+                error.printStackTrace()
+                null
+            } finally {
+                response?.close()
+            }
+        }
+        return result
+    }
+
+    private suspend fun post(url: String, body: RequestBody, put: Boolean = false): String? {
+        return url.toHttpUrlOrNull()?.let { post(it, body, put) }
+    }
+
+    /// Make HTTP POST request with Toggl credentials, the body being some JSON,
+    // and return response body as string
+    private suspend fun post(url: HttpUrl, body: RequestBody, put: Boolean = false): String? {
+        val result = withContext(Dispatchers.IO) {
+            var builder = Builder().url(url)
+            builder = if (put) builder.put(body) else builder.post(body)
+            val request: Request = builder.build()
+
+            Log.d(TAG, request.method)
             var response: Response? = null
             try {
                 response = client.newCall(request).execute()
