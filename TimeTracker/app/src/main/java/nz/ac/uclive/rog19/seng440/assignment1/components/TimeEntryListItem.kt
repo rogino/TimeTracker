@@ -25,7 +25,7 @@ import java.time.format.FormatStyle
 fun TimeEntryListItem(
     modifier: Modifier = Modifier,
     timeEntry: TimeEntry,
-    projects: Map<Int, Project>,
+    projects: Map<Long, Project>,
     zoneId: ZoneId = Clock.systemDefaultZone().zone,
     now: Instant? = Instant.now()
 ) {

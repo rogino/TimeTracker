@@ -6,29 +6,26 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 class GodModel(
-    projects: Map<Int, Project> = emptyMap(),
-    timeEntries: List<TimeEntry>
+    projects: MutableMap<Long, Project>,
+    timeEntries: MutableList<TimeEntry>
 ) {
-
-
-
-    var projects: Map<Int, Project> = projects
-    var timeEntries: List<TimeEntry> = timeEntries
+    var projects: MutableMap<Long, Project> = projects
+    var timeEntries: MutableList<TimeEntry> = timeEntries
 
     val currentEntry: TimeEntry? get() = timeEntries.first { it.isOngoing }
 
     constructor(projects: List<Project>, timeEntries: List<TimeEntry>) : this(
-        projects = projects.associateBy { it.id },
-        timeEntries = timeEntries
+        projects = projects.associateBy { it.id }.toMutableMap(),
+        timeEntries = timeEntries.toMutableList()
     )
 }
 
 val mockModel = GodModel(
-    listOf(
+    mutableListOf(
         Project(1, "Project Name", "#FF0000"),
         Project(3, "SENG440", "#A3B081"),
     ),
-    listOf(
+    mutableListOf(
         TimeEntry(
             10, "Entry description",
             "2022-07-23T07:54:35+00:00", "2022-07-23T08:10:02Z",

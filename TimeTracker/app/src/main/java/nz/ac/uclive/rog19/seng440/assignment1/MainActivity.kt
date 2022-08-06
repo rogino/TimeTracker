@@ -61,8 +61,8 @@ class MainActivity : ComponentActivity() {
         handler.post(updateTask)
         lifecycleScope.launch {
             val result = ApiRequest().currentTimeEntry()
-            if (result != null) {
-                Log.d(TAG, result.toString(2))
+            result?.let {
+                model.timeEntries.add(it)
             }
         }
 

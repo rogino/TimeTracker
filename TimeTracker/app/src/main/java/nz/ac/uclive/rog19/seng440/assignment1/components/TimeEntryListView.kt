@@ -20,7 +20,7 @@ import java.time.ZoneId
 fun TimeEntryListView(
     modifier: Modifier = Modifier,
     entries: List<TimeEntry>,
-    projects: Map<Int, Project>,
+    projects: Map<Long, Project>,
     zoneId: ZoneId = Clock.systemDefaultZone().zone,
     now: State<Instant> = mutableStateOf(Instant.now())
 ) {
