@@ -10,12 +10,10 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import nz.ac.uclive.rog19.seng440.assignment1.model.Project
 import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntry
@@ -43,8 +41,14 @@ fun TimeEntryListView(
             }
             val date = entry.startTime.atZone(zoneId)
             if (previousDate == null || (date.dayOfYear != previousDate!!.dayOfYear || date.year != previousDate!!.year)) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                    Text(text = date.format(DateTimeFormatter.ISO_LOCAL_DATE).toString(), fontSize = 20.sp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = date.format(DateTimeFormatter.ISO_LOCAL_DATE).toString(),
+                        fontSize = 20.sp
+                    )
                 }
             }
             previousDate = date
@@ -66,7 +70,8 @@ fun TimeEntryListView_Preview() {
     TimeTrackerTheme {
         TimeEntryListView(
             entries = mockModel.timeEntries,
-            projects = mockModel.projects)
+            projects = mockModel.projects
+        )
 
     }
 }

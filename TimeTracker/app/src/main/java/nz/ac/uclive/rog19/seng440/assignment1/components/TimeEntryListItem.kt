@@ -11,7 +11,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import nz.ac.uclive.rog19.seng440.assignment1.model.Project
@@ -50,13 +49,19 @@ fun TimeEntryListItem(
         )
     }
 
-    Column(modifier = Modifier
-        .padding(vertical = 4.dp)
-        .then(modifier)) {
-        Row(modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(text = timeEntry.description,
-            modifier = Modifier.weight(1f))
+    Column(
+        modifier = Modifier
+            .padding(vertical = 4.dp)
+            .then(modifier)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = timeEntry.description,
+                modifier = Modifier.weight(1f)
+            )
             durationText?.also {
 //            Text(zonedStart.format(DateTimeFormatter.ISO_LOCAL_DATE))
                 Text(text = durationText, modifier = Modifier.width(IntrinsicSize.Max))

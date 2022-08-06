@@ -2,9 +2,6 @@ package nz.ac.uclive.rog19.seng440.assignment1.model
 
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.snapshots.SnapshotStateList
-import androidx.compose.runtime.snapshots.SnapshotStateMap
-import java.lang.reflect.TypeVariable
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
@@ -49,9 +46,12 @@ val mockModel = GodModel(
         ),
 
         TimeEntry(
-            12, "Trying to figure out why accessing legends causes scene rendering to completely fail",
-            "2022-08-04T22:31:51+12:00", "2022-08-04T23:04:45+12:00",
-            1, arrayOf()
+            12,
+            "Trying to figure out why accessing legends causes scene rendering to completely fail",
+            "2022-08-04T22:31:51+12:00",
+            "2022-08-04T23:04:45+12:00",
+            1,
+            arrayOf()
         ),
 
         TimeEntry(

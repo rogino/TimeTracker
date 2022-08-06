@@ -12,13 +12,8 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request.Builder
 import okhttp3.RequestBody.Companion.toRequestBody
-import org.json.JSONArray
-import org.json.JSONObject
 import java.io.IOException
-import java.text.DateFormat
-import java.time.*
-import java.time.format.DateTimeFormatter
-import java.util.*
+import java.time.Instant
 
 
 class BasicAuthInterceptor(user: String, password: String) :
@@ -66,6 +61,7 @@ class ApiRequest {
         }
         return null
     }
+
     suspend fun getProjects(): List<Project>? {
         get("${domain}/${rootPath}/workspaces/${workspaceId}/projects")?.let {
             return jsonConverter.parseArray<Project>(it)
@@ -110,7 +106,10 @@ class ApiRequest {
     }
 
 
-    suspend fun getTimeEntries(startDate: Instant? = null, endDate: Instant? = null): List<TimeEntry>? {
+    suspend fun getTimeEntries(
+        startDate: Instant? = null,
+        endDate: Instant? = null
+    ): List<TimeEntry>? {
         var url = buildUrl.addPathSegments("me/time_entries")
         startDate?.let {
             url = if (endDate == null) {
@@ -119,7 +118,7 @@ class ApiRequest {
                 // v9 API: YYYY-MM-DD
                 url.addQueryParameter("start_date", it.toString().substring(0..9))
             }
-       }
+        }
         endDate?.let {
             url = if (startDate == null) {
                 url.addQueryParameter("before", (it.toEpochMilli() / 1000).toString())

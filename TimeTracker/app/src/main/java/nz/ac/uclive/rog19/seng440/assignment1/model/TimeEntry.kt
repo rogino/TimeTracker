@@ -45,13 +45,14 @@ data class TimeEntry(
 //    var duration: Long = duration
 
     @Json(name = "duration")
-    val durationSeconds: Long? get() {
-        if (isOngoing) {
-            return -startTime.epochSecond
+    val durationSeconds: Long?
+        get() {
+            if (isOngoing) {
+                return -startTime.epochSecond
+            }
+            // Duration necessary for stopping a timer
+            return duration?.seconds
         }
-        // Duration necessary for stopping a timer
-        return duration?.seconds
-    }
 
     @Json(ignored = true)
     val duration: Duration?
@@ -63,7 +64,8 @@ data class TimeEntry(
         }
 
     @Json(ignored = true)
-    val isOngoing get() = endTime == null
+    val isOngoing
+        get() = endTime == null
 
     constructor(
         id: Long? = null,
@@ -110,7 +112,7 @@ data class TimeEntry(
 //) {
 //}
 
-val DateTimeConverter = object: Converter {
+val DateTimeConverter = object : Converter {
     override fun canConvert(cls: Class<*>) = cls == Instant::class.java
     override fun toJson(value: Any): String {
         if (value is Instant) {
@@ -126,7 +128,7 @@ val DateTimeConverter = object: Converter {
                     return Instant.parse(it)
                 }
                 return OffsetDateTime.parse(it).toInstant()
-            } catch(err: DateTimeParseException) {
+            } catch (err: DateTimeParseException) {
                 Log.e(TAG, "JSON parse issue: error parsing date time string '$it'", err)
             }
         }
