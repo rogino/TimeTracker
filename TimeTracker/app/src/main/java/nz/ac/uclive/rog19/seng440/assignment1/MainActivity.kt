@@ -3,7 +3,6 @@ package nz.ac.uclive.rog19.seng440.assignment1
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
@@ -60,9 +59,15 @@ class MainActivity : ComponentActivity() {
         super.onStart()
         handler.post(updateTask)
         lifecycleScope.launch {
-            val result = ApiRequest().currentTimeEntry()
-            result?.let {
-                model.timeEntries.add(it)
+//            ApiRequest().getCurrentTimeEntry()?.let {
+//                model.timeEntries.add(it)
+//            }
+            ApiRequest().getTimeEntries(
+                startDate = Instant.now().minusSeconds(60 * 60 * 24 * 9),
+                endDate = Instant.now().minusSeconds(60 * 60 * 24 * 8),
+            )?.let {
+                model.timeEntries.clear()
+                model.timeEntries.addAll(it)
             }
         }
 

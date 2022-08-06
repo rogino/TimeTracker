@@ -15,12 +15,13 @@ import java.util.*
 // https://api.track.toggl.com/api/v9/me/time_entries
 data class TimeEntry(
     var id: Long? = null,
+
     var description: String = "",
 
     @Json(name = "start")
-    var startTime: Instant,
+    var startTime: Instant = Calendar.getInstance().toInstant(),
 
-    @Json(name = "end")
+    @Json(name = "stop")
     var endTime: Instant? = null,
 
     @Json(name = "project_id")
@@ -28,7 +29,7 @@ data class TimeEntry(
 
     /// see also tag_ids: [Long]
     @Json(name = "tags")
-    var tagNames: Array<String> = emptyArray()
+    var tagNames: Array<String>? = null
 ) {
     /// Duration in seconds
     /// -startTime.epoch for running timers
@@ -54,7 +55,6 @@ data class TimeEntry(
         id = id, description = description,
         startTime = OffsetDateTime.parse(startTime).toInstant(),
         endTime = if (endTime == null) null else OffsetDateTime.parse(endTime).toInstant(),
-//        duration = duration,
         projectId = projectId, tagNames = tagNames
     )
 }
@@ -69,11 +69,14 @@ val DateTimeConverter = object: Converter {
     }
 
     override fun fromJson(jv: JsonValue): Any? {
-        jv.string.also {
+        jv.string?.also {
             try {
+                if (it != null && it.last() == 'Z') {
+                    return Instant.parse(it)
+                }
                 return OffsetDateTime.parse(it).toInstant()
             } catch(err: DateTimeParseException) {
-                Log.e(TAG, "Error parsing date time string '$it'", err)
+                Log.e(TAG, "JSON parse issue: error parsing date time string '$it'", err)
             }
         }
         return null
