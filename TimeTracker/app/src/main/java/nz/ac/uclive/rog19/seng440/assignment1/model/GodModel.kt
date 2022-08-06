@@ -49,7 +49,13 @@ val mockModel = GodModel(
         ),
 
         TimeEntry(
-            12, "Android DateTime stuff",
+            12, "Trying to figure out why accessing legends causes scene rendering to completely fail",
+            "2022-08-04T22:31:51+12:00", "2022-08-04T23:04:45+12:00",
+            1, arrayOf()
+        ),
+
+        TimeEntry(
+            13, "Android DateTime stuff",
             DateTimeFormatter.ISO_DATE_TIME.format(
                 ZonedDateTime.ofInstant(
                     Instant.now().minusSeconds((60 * 60 + 12).toLong()),

@@ -70,8 +70,8 @@ class MainActivity : ComponentActivity() {
                 model.projects.putAll(it.associateBy { it.id })
             }
             ApiRequest().getTimeEntries(
-                startDate = Instant.now().minusSeconds(60 * 60 * 24 * 1),
-                endDate = Instant.now().minusSeconds(60 * 60 * 24 * 0),
+//                startDate = Instant.now().minusSeconds(60 * 60 * 24 * 1),
+//                endDate = Instant.now().minusSeconds(60 * 60 * 24 * 0),
             )?.let {
                 model.timeEntries.clear()
                 model.timeEntries.addAll(it)

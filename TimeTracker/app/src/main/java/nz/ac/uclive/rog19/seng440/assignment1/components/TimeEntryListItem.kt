@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import nz.ac.uclive.rog19.seng440.assignment1.model.Project
@@ -52,12 +53,13 @@ fun TimeEntryListItem(
     Column(modifier = Modifier
         .padding(vertical = 4.dp)
         .then(modifier)) {
-        Row() {
-            Text(text = timeEntry.description)
+        Row(modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(text = timeEntry.description,
+            modifier = Modifier.weight(1f))
             durationText?.also {
-                Spacer(modifier = Modifier.weight(1f))
 //            Text(zonedStart.format(DateTimeFormatter.ISO_LOCAL_DATE))
-                Text(text = durationText)
+                Text(text = durationText, modifier = Modifier.width(IntrinsicSize.Max))
             }
         }
 
@@ -97,7 +99,7 @@ fun TimeEntryListItem_Preview() {
     TimeTrackerTheme {
         Column {
             TimeEntryListItem(
-                timeEntry = mockModel.timeEntries.first(),
+                timeEntry = mockModel.timeEntries.find { it.id == 12L }!!,
                 projects = mockModel.projects
             )
 
