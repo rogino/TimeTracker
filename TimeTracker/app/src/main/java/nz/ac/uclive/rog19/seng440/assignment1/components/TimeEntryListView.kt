@@ -3,6 +3,7 @@ package nz.ac.uclive.rog19.seng440.assignment1
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.Divider
@@ -12,18 +13,61 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.snapshots.SnapshotStateMap
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import nz.ac.uclive.rog19.seng440.assignment1.model.Project
 import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntry
 import nz.ac.uclive.rog19.seng440.assignment1.model.mockModel
 import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.TimeTrackerTheme
-import java.time.Clock
-import java.time.Instant
-import java.time.ZoneId
-import java.time.ZonedDateTime
+import java.time.*
 import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+
+class TimeEntryPeriod(
+    val name: String,
+    val entries: ArrayList<TimeEntry> = ArrayList<TimeEntry>()
+) {
+    val totalDuration: Duration
+        get() {
+            return entries.fold(Duration.ZERO) { total, entry: TimeEntry -> total + entry.duration }
+        }
+}
+
+fun groupEntries(entries: List<TimeEntry>, zoneId: ZoneId, now: Instant): List<TimeEntryPeriod> {
+    var groups = ArrayList<TimeEntryPeriod>()
+    val nowDate: LocalDate = ZonedDateTime.ofInstant(now, zoneId).toLocalDate()
+
+    var previousDate: LocalDate? = null
+    var currentPeriod: TimeEntryPeriod? = null
+
+    entries.forEach { entry ->
+        val date = entry.startTime.atZone(zoneId).toLocalDate()
+
+        if (previousDate == null || !date.isEqual(previousDate)) {
+            currentPeriod?.let {
+                if (it.entries.isNotEmpty()) {
+                    groups.add(it)
+                }
+            }
+
+            var name: String = date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
+            if (date.isEqual(nowDate)) {
+                name = "Today"
+            } else if (date.isEqual(nowDate.minusDays(1))) {
+                name = "Yesterday"
+            }
+            currentPeriod = TimeEntryPeriod(name)
+        }
+
+        currentPeriod?.entries?.add(entry)
+        previousDate = date
+    }
+
+    return groups
+}
 
 @Composable
 fun TimeEntryListView(
@@ -34,32 +78,33 @@ fun TimeEntryListView(
     now: State<Instant> = mutableStateOf(Instant.now())
 ) {
     LazyColumn(modifier = modifier) {
-        var previousDate: ZonedDateTime? = null
-        itemsIndexed(items = entries) { index, entry ->
-            if (index != 0) {
-                Divider()
-            }
-            val date = entry.startTime.atZone(zoneId)
-            if (previousDate == null || (date.dayOfYear != previousDate!!.dayOfYear || date.year != previousDate!!.year)) {
+        groupEntries(entries, zoneId, now.value).forEachIndexed { i, group ->
+            item {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = if (i == 0) 0.dp else 10.dp, bottom = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom
                 ) {
+                    Text(text = group.name, fontSize = 24.sp, modifier = Modifier.alignByBaseline())
                     Text(
-                        text = date.format(DateTimeFormatter.ISO_LOCAL_DATE).toString(),
-                        fontSize = 20.sp
+                        text = "Total ${durationFormatter(group.totalDuration)}",
+                        modifier = Modifier.alignByBaseline()
                     )
                 }
             }
-            previousDate = date
 
-            // Passing null for `now` means only ongoing view gets re-rendered when date changes
-            TimeEntryListItem(
-                timeEntry = entry,
-                projects = projects,
-                zoneId = zoneId,
-                now = if (entry.isOngoing) now.value else null
-            )
+            itemsIndexed(group.entries) { index, entry ->
+                Divider()
+                // Passing null for `now` means only ongoing view gets re-rendered when date changes
+                TimeEntryListItem(
+                    timeEntry = entry,
+                    projects = projects,
+                    zoneId = zoneId,
+                    now = if (entry.isOngoing) now.value else null
+                )
+            }
         }
     }
 }
