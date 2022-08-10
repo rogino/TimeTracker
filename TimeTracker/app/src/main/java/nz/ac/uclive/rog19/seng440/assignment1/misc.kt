@@ -29,12 +29,21 @@ fun durationFormatter(duration: Duration, numComponents: Int = 2): String {
             continue
         }
 
+        var unitValueText = "$unitValue"
+        // TODO add property
+        if (arrayOf("s", "m", "h").contains(shortSuffix)) {
+            // All but the most significant unit should have leading zeros
+            if (bla && unitValueText.length == 1) {
+                unitValueText = "${"0".repeat(1)}$unitValue"
+            }
+        }
+
         // even if value is 0, show it
         bla = true
         if (out.isNotEmpty()) {
             out += " "
         }
-        out += "$unitValue$shortSuffix"
+        out += "$unitValueText$shortSuffix"
 
         count -= 1
         if (count <= 0) {
