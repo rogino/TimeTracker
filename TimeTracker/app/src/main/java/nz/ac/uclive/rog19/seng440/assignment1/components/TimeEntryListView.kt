@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.Button
 import androidx.compose.material.Divider
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -18,6 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import nz.ac.uclive.rog19.seng440.assignment1.model.Project
 import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntry
 import nz.ac.uclive.rog19.seng440.assignment1.model.mockModel
@@ -75,7 +78,8 @@ fun TimeEntryListView(
     entries: SnapshotStateList<TimeEntry>,
     projects: SnapshotStateMap<Long, Project>,
     zoneId: ZoneId = Clock.systemDefaultZone().zone,
-    now: State<Instant> = mutableStateOf(Instant.now())
+    now: State<Instant> = mutableStateOf(Instant.now()),
+    goToLogin: (() -> Unit)? = null
 ) {
     LazyColumn(modifier = modifier) {
         groupEntries(entries, zoneId, now.value).forEachIndexed { i, group ->
@@ -106,6 +110,12 @@ fun TimeEntryListView(
                 )
             }
         }
+
+        item {
+            Button(onClick = { goToLogin?.invoke() }) {
+                Text("Hello")
+            }
+        }
     }
 }
 
@@ -115,7 +125,7 @@ fun TimeEntryListView_Preview() {
     TimeTrackerTheme {
         TimeEntryListView(
             entries = mockModel.timeEntries,
-            projects = mockModel.projects
+            projects = mockModel.projects,
         )
 
     }

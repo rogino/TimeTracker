@@ -13,6 +13,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.launch
 import nz.ac.uclive.rog19.seng440.assignment1.model.GodModel
 import nz.ac.uclive.rog19.seng440.assignment1.model.mockModel
@@ -38,17 +41,27 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
+            val navController = rememberNavController()
             TimeTrackerTheme {
                 // A surface container using the 'background' color from the theme
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colors.background
                 ) {
-                    TimeEntryListView(
-                        entries = model.timeEntries,
-                        projects = model.projects,
-                        now = now
-                    )
+                    NavHost(navController, startDestination = "entries") {
+                        composable("login") {
+                            Text("LOGIN")
+                        }
+                        composable("entries") {
+                            TimeEntryListView(
+                                entries = model.timeEntries,
+                                projects = model.projects,
+                                now = now,
+                                goToLogin = { navController.navigate("login") }
+                            )
+                        }
+                    }
+
                 }
             }
         }
