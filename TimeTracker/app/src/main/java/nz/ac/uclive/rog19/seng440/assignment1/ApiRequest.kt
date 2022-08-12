@@ -2,6 +2,7 @@ package nz.ac.uclive.rog19.seng440.assignment1
 
 import android.util.Log
 import com.beust.klaxon.Klaxon
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import nz.ac.uclive.rog19.seng440.assignment1.model.DateTimeConverter
@@ -39,8 +40,11 @@ class ApiRequest {
     val domain: String = "https://api.track.toggl.com"
     val rootPath: String = "api/v9"
 
+    val authenticated: Boolean get() = apiKey != null
+
     var apiKey: String? = null
     set(value) {
+        field = value
         if (value != null) {
             client = buildClientWithAuthenticator(value)
         } else {
