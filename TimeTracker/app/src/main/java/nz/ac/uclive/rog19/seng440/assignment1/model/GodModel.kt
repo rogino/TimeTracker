@@ -2,11 +2,13 @@ package nz.ac.uclive.rog19.seng440.assignment1.model
 
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
+// TODO https://dev.to/zachklipp/implementing-snapshot-aware-data-structures-3pi8
 class GodModel(
     projects: Map<Long, Project>,
     timeEntries: List<TimeEntry>

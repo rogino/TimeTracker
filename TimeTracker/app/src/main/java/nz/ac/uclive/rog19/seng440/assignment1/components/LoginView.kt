@@ -37,6 +37,7 @@ fun LoginView(
     var email by remember { mutableStateOf(TextFieldValue("")) }
     var password by remember { mutableStateOf(TextFieldValue("")) }
     var errorMessage by remember { mutableStateOf("") }
+    var requestInProgress by remember { mutableStateOf(false) }
 
     val coroutineScope = rememberCoroutineScope()
 
@@ -78,17 +79,21 @@ fun LoginView(
         Button(onClick = {
             coroutineScope.launch(CoroutineExceptionHandler { _, exception ->
                 errorMessage = exception.message ?: exception.toString()
+                requestInProgress = false
             }) {
+                requestInProgress = true
                 val result = apiRequest.authenticate(
                     email = email.text.trim(),
                     password = password.text
                 )
+                requestInProgress = false
                 result?.let {
                     onLogin?.invoke(result)
                 }
             }
          },
-            enabled = email.text.trim().isNotEmpty() &&
+            enabled = !requestInProgress &&
+                      email.text.trim().isNotEmpty() &&
                       Patterns.EMAIL_ADDRESS.matcher(email.text.trim()).matches() &&
                       password.text.length > 8
         ) {

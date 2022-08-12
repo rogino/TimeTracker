@@ -1,5 +1,6 @@
 package nz.ac.uclive.rog19.seng440.assignment1
 
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -9,9 +10,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.Button
 import androidx.compose.material.Divider
 import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
@@ -19,8 +18,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.launch
 import nz.ac.uclive.rog19.seng440.assignment1.model.Project
 import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntry
 import nz.ac.uclive.rog19.seng440.assignment1.model.mockModel
@@ -79,45 +80,79 @@ fun TimeEntryListView(
     projects: SnapshotStateMap<Long, Project>,
     zoneId: ZoneId = Clock.systemDefaultZone().zone,
     now: State<Instant> = mutableStateOf(Instant.now()),
+    apiRequest: ApiRequest? = null,
+    setData: ((List<TimeEntry>, List<Project>) -> Unit)? = null,
     goToLogin: (() -> Unit)? = null
 ) {
-    LazyColumn(modifier = modifier) {
-        groupEntries(entries, zoneId, now.value).forEachIndexed { i, group ->
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = if (i == 0) 0.dp else 10.dp, bottom = 6.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Bottom
-                ) {
-                    Text(text = group.name, fontSize = 24.sp, modifier = Modifier.alignByBaseline())
-                    Text(
-                        text = "Total ${durationFormatter(group.totalDuration)}",
-                        modifier = Modifier.alignByBaseline()
-                    )
+    var isRefreshing by remember { mutableStateOf<Boolean>(false) }
+    var coroutineScope = rememberCoroutineScope()
+
+    SwipeRefresh(
+        state = rememberSwipeRefreshState(isRefreshing = isRefreshing),
+        onRefresh = {
+            coroutineScope.launch(CoroutineExceptionHandler { _, exception ->
+                Log.d(TAG, exception.message ?: exception.toString())
+//                Toast.makeText(currentCompositionLocalContext,
+//                        exception.message ?: exception.toString(),
+//                    Toast.LENGTH_SHORT)
+//                )
+                isRefreshing = false
+            }) {
+                isRefreshing = true
+                val entries = apiRequest?.getTimeEntries(
+                    startDate = Instant.now().minusSeconds(60 * 60 * 24 * 7),
+                    endDate = Instant.now().plusSeconds(60 * 60 * 24)
+                )
+                val projects = apiRequest?.getProjects()
+                if (entries != null && projects != null) {
+                    setData?.invoke(entries, projects)
+                }
+                isRefreshing = false
+            }
+        }) {
+            LazyColumn() {
+                groupEntries(entries, zoneId, now.value).forEachIndexed { i, group ->
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = if (i == 0) 0.dp else 10.dp, bottom = 6.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Bottom
+                        ) {
+                            Text(
+                                text = group.name,
+                                fontSize = 24.sp,
+                                modifier = Modifier.alignByBaseline()
+                            )
+                            Text(
+                                text = "Total ${durationFormatter(group.totalDuration)}",
+                                modifier = Modifier.alignByBaseline()
+                            )
+                        }
+                    }
+
+                    itemsIndexed(group.entries) { index, entry ->
+                        Divider()
+                        // Passing null for `now` means only ongoing view gets re-rendered when date changes
+                        TimeEntryListItem(
+                            timeEntry = entry,
+                            projects = projects,
+                            zoneId = zoneId,
+                            now = if (entry.isOngoing) now.value else null
+                        )
+                    }
+                }
+
+                item {
+                    Button(onClick = { goToLogin?.invoke() }) {
+                        Text("Hello")
+                    }
                 }
             }
-
-            itemsIndexed(group.entries) { index, entry ->
-                Divider()
-                // Passing null for `now` means only ongoing view gets re-rendered when date changes
-                TimeEntryListItem(
-                    timeEntry = entry,
-                    projects = projects,
-                    zoneId = zoneId,
-                    now = if (entry.isOngoing) now.value else null
-                )
-            }
         }
-
-        item {
-            Button(onClick = { goToLogin?.invoke() }) {
-                Text("Hello")
-            }
-        }
-    }
 }
+
 
 @Preview(showBackground = true)
 @Composable

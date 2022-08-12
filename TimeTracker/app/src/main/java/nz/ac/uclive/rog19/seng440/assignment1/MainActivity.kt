@@ -4,7 +4,6 @@ import android.content.Context
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
@@ -73,10 +72,12 @@ class MainActivity : ComponentActivity() {
                             LoginView(
                                 apiRequest = apiRequest
                             ) {
-                                with (getSharedPreferences(
-                                    timeTrackerPreferencesFileName,
-                                    Context.MODE_PRIVATE
-                                ).edit()) {
+                                with(
+                                    getSharedPreferences(
+                                        timeTrackerPreferencesFileName,
+                                        Context.MODE_PRIVATE
+                                    ).edit()
+                                ) {
                                     putString("API_KEY", it.apiToken)
                                     putInt("DEFAULT_WORKSPACE_ID", it.defaultWorkspaceId)
                                     commit()
@@ -93,6 +94,14 @@ class MainActivity : ComponentActivity() {
                                 entries = model.timeEntries,
                                 projects = model.projects,
                                 now = now,
+                                apiRequest = apiRequest,
+                                setData = { entries, projects ->
+                                    model.timeEntries.clear()
+                                    model.timeEntries.addAll(entries)
+
+                                    model.projects.clear()
+                                    model.projects.putAll(projects.associateBy { it.id })
+                                },
                                 goToLogin = { navController.navigate("login") }
                             )
                         }
