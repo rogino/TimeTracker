@@ -64,17 +64,18 @@ class MainActivity : ComponentActivity() {
 //            }
 //            ApiRequest().newTimeEntry(TimeEntry(description="TEST", startTime = Instant.now().minusSeconds(60), endTime = Instant.now()
 //            ))
-            ApiRequest().getProjects()?.let {
-                model.projects.clear()
-                model.projects.putAll(it.associateBy { it.id })
-            }
-            ApiRequest().getTimeEntries(
-//                startDate = Instant.now().minusSeconds(60 * 60 * 24 * 1),
-//                endDate = Instant.now().minusSeconds(60 * 60 * 24 * 0),
-            )?.let {
-                model.timeEntries.clear()
-                model.timeEntries.addAll(it)
-            }
+            ApiRequest().authenticate("EMAIL", "PASSWORD")
+//            ApiRequest().getProjects()?.let {
+//                model.projects.clear()
+//                model.projects.putAll(it.associateBy { it.id })
+//            }
+//            ApiRequest().getTimeEntries(
+////                startDate = Instant.now().minusSeconds(60 * 60 * 24 * 1),
+////                endDate = Instant.now().minusSeconds(60 * 60 * 24 * 0),
+//            )?.let {
+//                model.timeEntries.clear()
+//                model.timeEntries.addAll(it)
+//            }
         }
 
     }

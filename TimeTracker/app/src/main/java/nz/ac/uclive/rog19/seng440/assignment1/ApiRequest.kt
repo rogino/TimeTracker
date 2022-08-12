@@ -5,6 +5,7 @@ import com.beust.klaxon.Klaxon
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import nz.ac.uclive.rog19.seng440.assignment1.model.DateTimeConverter
+import nz.ac.uclive.rog19.seng440.assignment1.model.Me
 import nz.ac.uclive.rog19.seng440.assignment1.model.Project
 import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntry
 import okhttp3.*
@@ -12,6 +13,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request.Builder
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
 import java.io.IOException
 import java.time.Instant
 
@@ -37,13 +39,30 @@ class ApiRequest {
     val domain: String = "https://api.track.toggl.com"
     val rootPath: String = "api/v9"
 
-    var apiKey: String = API_KEY
+    var apiKey: String? = null
+    set(value) {
+        if (value != null) {
+            client = buildClientWithAuthenticator(value)
+        } else {
+            client = null
+        }
+    }
 
-    var workspaceId: Int = WORKSPACE_ID
+    var workspaceId: Int? = null
 
-    val client: OkHttpClient = OkHttpClient.Builder()
-        .addInterceptor(BasicAuthInterceptor(apiKey, "api_token"))
-        .build()
+    var client: OkHttpClient? = null
+    init {
+//        apiKey = API_KEY
+//        workspaceId = WORKSPACE_ID
+    }
+
+
+    fun buildClientWithAuthenticator(apiKey: String): OkHttpClient {
+        return OkHttpClient.Builder()
+            .addInterceptor(BasicAuthInterceptor(apiKey, "api_token"))
+            .build()
+
+    }
 
     val buildUrl: HttpUrl.Builder
         get() = HttpUrl.Builder()
@@ -56,21 +75,21 @@ class ApiRequest {
     val jsonType = "application/json; charset=utf-8".toMediaType()
 
     suspend fun getTags(): List<Project>? {
-        get("${domain}/${rootPath}/workspaces/${workspaceId}/projects")?.let {
+        get("${domain}/${rootPath}/workspaces/${workspaceId}/projects", client!!)?.let {
             return jsonConverter.parseArray<Project>(it)
         }
         return null
     }
 
     suspend fun getProjects(): List<Project>? {
-        get("${domain}/${rootPath}/workspaces/${workspaceId}/projects")?.let {
+        get("${domain}/${rootPath}/workspaces/${workspaceId}/projects", client!!)?.let {
             return jsonConverter.parseArray<Project>(it)
         }
         return null
     }
 
     suspend fun getCurrentTimeEntry(): TimeEntry? {
-        get("${domain}/${rootPath}/me/time_entries/current")?.let {
+        get("${domain}/${rootPath}/me/time_entries/current", client!!)?.let {
             if (it != "null") {
                 // if no timer currently active, returns `null` which cannot be parsed as JSON
                 return jsonConverter.parse<TimeEntry>(it)
@@ -105,6 +124,24 @@ class ApiRequest {
         return null
     }
 
+    suspend fun authenticate(email: String, password: String): Me? {
+        val client = OkHttpClient.Builder()
+            .addInterceptor(BasicAuthInterceptor(email, password))
+            .build()
+
+        var url = buildUrl
+            .addPathSegments("me")
+            .build()
+
+        get(url, client)?.let { body ->
+            return jsonConverter.parse<Me>(body)?.also {
+                apiKey = it.apiToken
+            }
+        }
+
+        return null
+    }
+
 
     suspend fun getTimeEntries(
         startDate: Instant? = null,
@@ -127,19 +164,19 @@ class ApiRequest {
             }
         }
 
-        get(url.build())?.let {
+        get(url.build(), client!!)?.let {
             Log.d(TAG, it.toString())
             return jsonConverter.parseArray<TimeEntry>(it)
         }
         return null
     }
 
-    private suspend fun get(url: String): String? {
-        return url.toHttpUrlOrNull()?.let { get(it) }
+    private suspend fun get(url: String, client: OkHttpClient): String? {
+        return url.toHttpUrlOrNull()?.let { get(it, client) }
     }
 
     /// Make HTTP GET request with Toggl credentials and return response body as string
-    private suspend fun get(url: HttpUrl): String? {
+    private suspend fun get(url: HttpUrl, client: OkHttpClient): String? {
         val result = withContext(Dispatchers.IO) {
             val request: Request = Builder()
                 .url(url)
@@ -158,7 +195,7 @@ class ApiRequest {
                     }
                     else -> {
                         Log.e(TAG, "ERROR ${response.code} MAKING REQUEST TO ${url.toString()}")
-                        Log.e(TAG, response.headers!!.toString())
+                        Log.e(TAG, response.headers.toString())
                         Log.e(TAG, response.body!!.string())
                         null
                     }
@@ -188,7 +225,7 @@ class ApiRequest {
             Log.d(TAG, request.method)
             var response: Response? = null
             try {
-                response = client.newCall(request).execute()
+                response = client!!.newCall(request).execute()
                 when (response.code) {
                     200 -> {
                         response.body!!.string()
