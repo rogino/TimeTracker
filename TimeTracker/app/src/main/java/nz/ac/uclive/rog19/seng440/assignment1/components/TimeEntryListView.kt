@@ -1,6 +1,7 @@
 package nz.ac.uclive.rog19.seng440.assignment1
 
 import android.util.Log
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,6 +25,7 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.launch
 import nz.ac.uclive.rog19.seng440.assignment1.model.Project
 import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntry
+import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntryObservable
 import nz.ac.uclive.rog19.seng440.assignment1.model.mockModel
 import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.TimeTrackerTheme
 import java.time.*
@@ -82,6 +84,7 @@ fun TimeEntryListView(
     now: State<Instant> = mutableStateOf(Instant.now()),
     apiRequest: ApiRequest? = null,
     setData: ((List<TimeEntry>, List<Project>) -> Unit)? = null,
+    editEntry: ((TimeEntry?) -> Unit)? = null,
     goToLogin: (() -> Unit)? = null
 ) {
     var isRefreshing by remember { mutableStateOf<Boolean>(false) }
@@ -110,7 +113,7 @@ fun TimeEntryListView(
                 isRefreshing = false
             }
         }) {
-            LazyColumn() {
+            LazyColumn(modifier = modifier) {
                 groupEntries(entries, zoneId, now.value).forEachIndexed { i, group ->
                     item {
                         Row(
@@ -139,14 +142,17 @@ fun TimeEntryListView(
                             timeEntry = entry,
                             projects = projects,
                             zoneId = zoneId,
-                            now = if (entry.isOngoing) now.value else null
+                            now = if (entry.isOngoing) now.value else null,
+                            modifier = Modifier.clickable {
+                                editEntry?.invoke(entry)
+                            }
                         )
                     }
                 }
 
                 item {
-                    Button(onClick = { goToLogin?.invoke() }) {
-                        Text("Hello")
+                    Button(onClick = { editEntry?.invoke(null) }) {
+                        Text("New Time Entry")
                     }
                 }
             }

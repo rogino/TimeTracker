@@ -25,7 +25,7 @@ import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.TimeTrackerTheme
 @Composable
 fun EditEntryView(
     entry: TimeEntryObservable = remember { TimeEntryObservable() },
-    isMostRecentEntry: Boolean = false,
+    enableStartAtLastStopTime: Boolean = false,
     projects: Map<Long, Project>,
     allTags: Collection<String>,
     modifier: Modifier = Modifier

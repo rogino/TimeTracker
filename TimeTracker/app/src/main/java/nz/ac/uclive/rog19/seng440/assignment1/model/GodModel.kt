@@ -38,6 +38,16 @@ class GodModel(
 
     val currentEntry: TimeEntry? get() = timeEntries.first { it.isOngoing }
 
+    fun addOrUpdate(timeEntry: TimeEntry) {
+        val index = timeEntries.indexOfFirst { it.id == timeEntry.id }
+        if (index == -1) {
+            timeEntries.add(timeEntry)
+        } else {
+            timeEntries[index] = timeEntry
+        }
+        timeEntries.sortBy { it.startTime }
+    }
+
     constructor(projects: List<Project>, timeEntries: List<TimeEntry>) : this(
         projects = projects.associateBy { it.id },
         timeEntries = timeEntries

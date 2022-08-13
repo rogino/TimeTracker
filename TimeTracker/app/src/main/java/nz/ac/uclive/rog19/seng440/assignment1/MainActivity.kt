@@ -7,11 +7,13 @@ import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -25,6 +27,7 @@ import nz.ac.uclive.rog19.seng440.assignment1.model.getTagsFromEntries
 import nz.ac.uclive.rog19.seng440.assignment1.model.mockModel
 import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.TimeTrackerTheme
 import java.time.Instant
+import kotlin.concurrent.fixedRateTimer
 
 // https://developer.android.com/studio/write/java8-support-table
 
@@ -43,6 +46,7 @@ class MainActivity : ComponentActivity() {
         apiRequest = ApiRequest()
 
         val preferences = getSharedPreferences(timeTrackerPreferencesFileName, Context.MODE_PRIVATE)
+        var currentlyEditedEntry: TimeEntryObservable = TimeEntryObservable()
 
         val key = preferences.getString("API_KEY", null)
         val workspaceId = preferences.getInt("DEFAULT_WORKSPACE_ID", -1)
@@ -62,7 +66,6 @@ class MainActivity : ComponentActivity() {
             startDestination = "entries"
         }
 
-        startDestination = "edit_entry"
 
         setContent {
             val navController = rememberNavController()
@@ -109,14 +112,23 @@ class MainActivity : ComponentActivity() {
 
                                     model.tags = getTagsFromEntries(model.timeEntries).toMutableStateList()
                                 },
-                                goToLogin = { navController.navigate("login") }
+                                goToLogin = { navController.navigate("login") },
+                                editEntry = { entry ->
+                                    currentlyEditedEntry = entry?.toObservable() ?: TimeEntryObservable()
+                                    navController.navigate("edit_entry")
+                                },
+                                modifier = Modifier.padding(horizontal = 16.dp)
                             )
                         }
                         composable("edit_entry") {
+                            val mostRecent = model.timeEntries.first()
+                            val current = currentlyEditedEntry
                             EditEntryView(
                                 projects = model.projects,
-                                entry = model.currentEntry?.toObservable() ?: TimeEntryObservable(),
-                                allTags = model.tags
+                                entry = current,
+                                allTags = model.tags,
+                                enableStartAtLastStopTime = (current.id == null && mostRecent != null) ||
+                                                            (current.id == mostRecent?.id)
                             )
                         }
                     }
