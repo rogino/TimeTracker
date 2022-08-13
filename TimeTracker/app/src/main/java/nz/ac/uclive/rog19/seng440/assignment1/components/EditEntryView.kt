@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import nz.ac.uclive.rog19.seng440.assignment1.TAG
 import nz.ac.uclive.rog19.seng440.assignment1.model.Project
 import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntry
+import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntryObservable
 import nz.ac.uclive.rog19.seng440.assignment1.model.mockModel
 import nz.ac.uclive.rog19.seng440.assignment1.newlineEtAlRegex
 import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.TimeTrackerTheme
@@ -23,26 +24,14 @@ import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.TimeTrackerTheme
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun EditEntryView(
-    entry: TimeEntry? = null,
+    entry: TimeEntryObservable = remember { TimeEntryObservable() },
     isMostRecentEntry: Boolean = false,
     projects: Map<Long, Project>,
     allTags: Collection<String>,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
-        var description by remember { mutableStateOf(TextFieldValue(entry?.description ?: "")) }
-        var projectId: Long? by remember { mutableStateOf(null) }
         var projectListOpen by remember { mutableStateOf(false) }
-
-
-        var selectedTags by remember {
-            mutableStateOf(
-                listOf(*(entry?.tagNames?.toTypedArray() ?: emptyArray()))
-            )
-        }
-//        var selectedTags by remember { mutableStateOf(
-//
-//        ) }
         var tagListOpen by remember { mutableStateOf(false) }
 
         val coroutineScope = rememberCoroutineScope()
@@ -52,13 +41,13 @@ fun EditEntryView(
         projectsAndNull.addAll(projects.values)
 
         TextField(
-            value = description,
+            value = entry.description,
             label = { Text(text = "Description") },
             onValueChange = {
-                if (it.text.contains(newlineEtAlRegex)) {
+                if (it.contains(newlineEtAlRegex)) {
                     focusManager.moveFocus(FocusDirection.Next)
                 } else {
-                    description = it
+                    entry.description = it
                 }
             },
             modifier = Modifier.fillMaxWidth()
@@ -70,15 +59,15 @@ fun EditEntryView(
             modifier = Modifier
         ) {
 //         https://stackoverflow.com/questions/67111020/exposed-drop-down-menu-for-jetpack-compose
-            val selectedProject = if (projectId == null) null else projects[projectId]
+            val selectedProject = if (entry.projectId == null) null else projects[entry.projectId]
             TextField(
                 readOnly = true,
-                value = if (projectId == null) "[No project selected]" else (selectedProject?.name
+                value = if (entry.projectId == null) "[No project selected]" else (selectedProject?.name
                     ?: "Unknown"),
                 onValueChange = {},
                 label = { Text(text = "Project") },
                 trailingIcon = {
-                    ColoredDot(project = if (projectId != null) projects[projectId] else null)
+                    ColoredDot(project = selectedProject)
                 },
 //                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = projectListOpen) },
                 colors = ExposedDropdownMenuDefaults.textFieldColors(),
@@ -93,10 +82,10 @@ fun EditEntryView(
                 modifier = Modifier.exposedDropdownSize()
             ) {
                 projectsAndNull.forEach { project ->
-                    val isSelected = projectId == project?.id
+                    val isSelected = entry.projectId == project?.id
                     DropdownMenuItem(
                         onClick = {
-                            projectId = project?.id
+                            entry.projectId = project?.id
                             projectListOpen = false
                         },
                         modifier = Modifier.background(
@@ -139,16 +128,14 @@ fun EditEntryView(
                 modifier = Modifier.exposedDropdownSize()
             ) {
                 allTags.forEach { tagName ->
-                    val index = selectedTags.indexOf(tagName)
+                    val index = entry.tagNames.indexOf(tagName)
                     val isSelected = index != -1
                     DropdownMenuItem(
                         onClick = {
                             if (isSelected) {
-                                selectedTags = selectedTags.filter{ it != tagName }
-                                Log.d(TAG, selectedTags.joinToString { it })
+                                entry.tagNames.remove(tagName)
                             } else {
-                                selectedTags = selectedTags + tagName
-                                Log.d(TAG, selectedTags.joinToString { it })
+                                entry.tagNames.add(tagName)
                             }
                         },
                         modifier = Modifier.background(
@@ -175,7 +162,7 @@ fun EditEntry_Preview() {
             modifier = Modifier.height(600.dp)
         ) {
             EditEntryView(
-                entry = mockModel.currentEntry,
+                entry = mockModel.currentEntry!!.toObservable(),
                 projects = mockModel.projects,
                 allTags = mockModel.tags
             )

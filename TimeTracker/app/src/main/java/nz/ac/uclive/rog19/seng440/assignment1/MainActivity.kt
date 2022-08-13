@@ -20,6 +20,7 @@ import kotlinx.coroutines.launch
 import nz.ac.uclive.rog19.seng440.assignment1.components.EditEntryView
 import nz.ac.uclive.rog19.seng440.assignment1.components.LoginView
 import nz.ac.uclive.rog19.seng440.assignment1.model.GodModel
+import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntryObservable
 import nz.ac.uclive.rog19.seng440.assignment1.model.getTagsFromEntries
 import nz.ac.uclive.rog19.seng440.assignment1.model.mockModel
 import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.TimeTrackerTheme
@@ -114,7 +115,7 @@ class MainActivity : ComponentActivity() {
                         composable("edit_entry") {
                             EditEntryView(
                                 projects = model.projects,
-                                entry = model.currentEntry,
+                                entry = model.currentEntry?.toObservable() ?: TimeEntryObservable(),
                                 allTags = model.tags
                             )
                         }

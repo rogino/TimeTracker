@@ -1,6 +1,11 @@
 package nz.ac.uclive.rog19.seng440.assignment1.model
 
 import android.util.Log
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.beust.klaxon.Converter
 import com.beust.klaxon.Json
 import com.beust.klaxon.JsonValue
@@ -82,6 +87,51 @@ data class TimeEntry(
         projectId = projectId, tagNames = tagNames,
         workspaceId = workspaceId
     )
+
+    fun toObservable(): TimeEntryObservable {
+        return TimeEntryObservable(
+            id = id,
+            description = description,
+            startTime = startTime!!,
+            endTime = endTime,
+            projectId = projectId,
+            tagNames = tagNames?.toTypedArray() ?: emptyArray(),
+            workspaceId = workspaceId
+        )
+    }
+}
+
+class TimeEntryObservable(
+    id: Long? = null,
+    description: String = "",
+    startTime: Instant? = null,
+    endTime: Instant? = null,
+    projectId: Long? = null,
+    tagNames: Array<String> = emptyArray(),
+    workspaceId: Int? = null
+) {
+    var id: Long? by mutableStateOf(id)
+    var description: String by mutableStateOf(description)
+    var startTime: Instant? by mutableStateOf(startTime)
+    var endTime: Instant? by mutableStateOf(endTime)
+    var projectId: Long? by mutableStateOf(projectId)
+    val tagNames: SnapshotStateList<String> = mutableStateListOf(*tagNames)
+    var workspaceId: Int? by mutableStateOf(workspaceId)
+
+    fun toTimeEntry(): TimeEntry? {
+        if (startTime == null) {
+            return null
+        }
+        return TimeEntry(
+            id = id,
+            description = description,
+            startTime = startTime!!,
+            endTime = endTime,
+            projectId = projectId,
+            tagNames = tagNames.toList().sorted(),
+            workspaceId = workspaceId
+        )
+    }
 }
 
 //data class TimeEntryDto(
