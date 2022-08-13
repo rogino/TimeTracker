@@ -32,7 +32,7 @@ data class TimeEntry(
 
     /// see also tag_ids: [Long]
     @Json(name = "tags")
-    var tagNames: Array<String>? = null,
+    var tagNames: List<String>? = null,
 
     @Json(name = "created_with")
     var createdWith: String = APP_IDENTIFIER,
@@ -73,7 +73,7 @@ data class TimeEntry(
         startTime: String,
         endTime: String? = null,
         projectId: Long? = null,
-        tagNames: Array<String> = emptyArray(),
+        tagNames: List<String> = emptyList(),
         workspaceId: Int? = null
     ) : this(
         id = id, description = description,

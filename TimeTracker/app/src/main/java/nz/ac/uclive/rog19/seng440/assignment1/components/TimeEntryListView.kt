@@ -116,7 +116,7 @@ fun TimeEntryListView(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = if (i == 0) 0.dp else 10.dp, bottom = 6.dp),
+                                .padding(top = if (i == 0) 0.dp else 14.dp, bottom = 6.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.Bottom
                         ) {

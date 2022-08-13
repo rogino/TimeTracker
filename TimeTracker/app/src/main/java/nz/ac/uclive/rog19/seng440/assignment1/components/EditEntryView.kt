@@ -1,12 +1,14 @@
 package nz.ac.uclive.rog19.seng440.assignment1.components
 
 import android.util.Log
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
@@ -24,12 +26,24 @@ fun EditEntryView(
     entry: TimeEntry? = null,
     isMostRecentEntry: Boolean = false,
     projects: Map<Long, Project>,
+    allTags: Collection<String>,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
         var description by remember { mutableStateOf(TextFieldValue(entry?.description ?: "")) }
         var projectId: Long? by remember { mutableStateOf(null) }
         var projectListOpen by remember { mutableStateOf(false) }
+
+
+        var selectedTags by remember {
+            mutableStateOf(
+                listOf(*(entry?.tagNames?.toTypedArray() ?: emptyArray()))
+            )
+        }
+//        var selectedTags by remember { mutableStateOf(
+//
+//        ) }
+        var tagListOpen by remember { mutableStateOf(false) }
 
         val coroutineScope = rememberCoroutineScope()
         val focusManager = LocalFocusManager.current
@@ -79,10 +93,15 @@ fun EditEntryView(
                 modifier = Modifier.exposedDropdownSize()
             ) {
                 projectsAndNull.forEach { project ->
-                    DropdownMenuItem(onClick = {
-                        projectId = project?.id
-                        projectListOpen = false
-                    }
+                    val isSelected = projectId == project?.id
+                    DropdownMenuItem(
+                        onClick = {
+                            projectId = project?.id
+                            projectListOpen = false
+                        },
+                        modifier = Modifier.background(
+                            color = if (isSelected) Color.LightGray else Color.Unspecified
+                        )
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             ColoredDot(
@@ -93,6 +112,55 @@ fun EditEntryView(
                         }
                     }
                 }
+            }
+        }
+
+        ExposedDropdownMenuBox(
+            expanded = tagListOpen,
+            onExpandedChange = { tagListOpen = it },
+            modifier = Modifier
+        ) {
+//         https://stackoverflow.com/questions/67111020/exposed-drop-down-menu-for-jetpack-compose
+            TextField(
+                readOnly = true,
+                value = entry?.tagNames?.joinToString { it } ?: "[No tags selected]",
+                onValueChange = {},
+                label = { Text(text = "Tags") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = tagListOpen) },
+                colors = ExposedDropdownMenuDefaults.textFieldColors(),
+                modifier = Modifier
+                    .fillMaxWidth()
+            )
+
+            DropdownMenu(
+                expanded = tagListOpen,
+                onDismissRequest = { tagListOpen = false },
+                // https://stackoverflow.com/a/70683378
+                modifier = Modifier.exposedDropdownSize()
+            ) {
+                allTags.forEach { tagName ->
+                    val index = selectedTags.indexOf(tagName)
+                    val isSelected = index != -1
+                    DropdownMenuItem(
+                        onClick = {
+                            if (isSelected) {
+                                selectedTags = selectedTags.filter{ it != tagName }
+                                Log.d(TAG, selectedTags.joinToString { it })
+                            } else {
+                                selectedTags = selectedTags + tagName
+                                Log.d(TAG, selectedTags.joinToString { it })
+                            }
+                        },
+                        modifier = Modifier.background(
+                            color = if (isSelected) Color.LightGray else Color.Unspecified
+                        )
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(text = tagName)
+                        }
+                    }
+                }
+
             }
         }
     }
@@ -108,7 +176,8 @@ fun EditEntry_Preview() {
         ) {
             EditEntryView(
                 entry = mockModel.currentEntry,
-                projects = mockModel.projects
+                projects = mockModel.projects,
+                allTags = mockModel.tags
             )
         }
     }

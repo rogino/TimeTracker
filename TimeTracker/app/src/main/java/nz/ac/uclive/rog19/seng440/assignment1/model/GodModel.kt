@@ -3,22 +3,37 @@ package nz.ac.uclive.rog19.seng440.assignment1.model
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.toMutableStateList
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
+fun getTagsFromEntries(entries: Collection<TimeEntry>): List<String> {
+    var tags = mutableSetOf<String>()
+    entries.forEach { it.tagNames?.let { tags.addAll(it) } }
+
+    return tags.toList().sorted()
+}
+
 // TODO https://dev.to/zachklipp/implementing-snapshot-aware-data-structures-3pi8
 class GodModel(
     projects: Map<Long, Project>,
-    timeEntries: List<TimeEntry>
+    timeEntries: List<TimeEntry>,
+    tags: List<String>? = null
 ) {
     var projects = mutableStateMapOf<Long, Project>()
     var timeEntries = mutableStateListOf<TimeEntry>()
+    var tags = mutableStateListOf<String>()
 
     init {
         this.projects.putAll(projects)
         this.timeEntries.addAll(timeEntries)
+        if (tags == null) {
+            this.tags = getTagsFromEntries(timeEntries).toMutableStateList()
+        } else {
+            this.tags.addAll(tags)
+        }
     }
 
     val currentEntry: TimeEntry? get() = timeEntries.first { it.isOngoing }
@@ -38,13 +53,13 @@ val mockModel = GodModel(
         TimeEntry(
             10, "Entry description",
             "2022-07-23T07:54:35+00:00", "2022-07-23T08:10:02Z",
-            1, arrayOf("Tag1", "Another Tag")
+            1, listOf("Tag1", "Another Tag")
         ),
 
         TimeEntry(
             11, "Playing around with Jetpack Compose",
             "2022-08-03T20:30:10+00:00", "2022-08-03T21:30:00Z",
-            3, arrayOf("Assignment", "Coding")
+            3, listOf("Assignment", "Coding")
         ),
 
         TimeEntry(
@@ -53,7 +68,7 @@ val mockModel = GodModel(
             "2022-08-04T22:31:51+12:00",
             "2022-08-04T23:04:45+12:00",
             1,
-            arrayOf()
+            emptyList()
         ),
 
         TimeEntry(
@@ -65,7 +80,7 @@ val mockModel = GodModel(
                 )
             ),
             null,
-            3, arrayOf("Assignment", "Coding")
+            3, listOf("Assignment", "Coding")
         )
 
     )

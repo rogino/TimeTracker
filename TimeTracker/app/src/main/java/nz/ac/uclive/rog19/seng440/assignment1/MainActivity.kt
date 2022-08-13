@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
@@ -19,6 +20,7 @@ import kotlinx.coroutines.launch
 import nz.ac.uclive.rog19.seng440.assignment1.components.EditEntryView
 import nz.ac.uclive.rog19.seng440.assignment1.components.LoginView
 import nz.ac.uclive.rog19.seng440.assignment1.model.GodModel
+import nz.ac.uclive.rog19.seng440.assignment1.model.getTagsFromEntries
 import nz.ac.uclive.rog19.seng440.assignment1.model.mockModel
 import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.TimeTrackerTheme
 import java.time.Instant
@@ -103,6 +105,8 @@ class MainActivity : ComponentActivity() {
 
                                     model.projects.clear()
                                     model.projects.putAll(projects.associateBy { it.id })
+
+                                    model.tags = getTagsFromEntries(model.timeEntries).toMutableStateList()
                                 },
                                 goToLogin = { navController.navigate("login") }
                             )
@@ -110,7 +114,8 @@ class MainActivity : ComponentActivity() {
                         composable("edit_entry") {
                             EditEntryView(
                                 projects = model.projects,
-                                entry = model.currentEntry
+                                entry = model.currentEntry,
+                                allTags = model.tags
                             )
                         }
                     }
