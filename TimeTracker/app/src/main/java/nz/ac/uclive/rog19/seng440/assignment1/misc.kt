@@ -5,6 +5,8 @@ import java.time.Duration
 /// Log.d(A, "some message")
 val TAG = "GodModel"
 
+val newlineEtAlRegex = Regex("[\\r\\n\\t]")
+
 /// Format a duration, showing the most significant `n` components
 fun durationFormatter(duration: Duration, numComponents: Int = 2): String {
     val components: Array<Pair<Int, String>> = arrayOf(

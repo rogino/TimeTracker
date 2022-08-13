@@ -16,6 +16,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.launch
+import nz.ac.uclive.rog19.seng440.assignment1.components.EditEntryView
 import nz.ac.uclive.rog19.seng440.assignment1.components.LoginView
 import nz.ac.uclive.rog19.seng440.assignment1.model.GodModel
 import nz.ac.uclive.rog19.seng440.assignment1.model.mockModel
@@ -56,8 +57,9 @@ class MainActivity : ComponentActivity() {
         var startDestination = "login"
         if (apiRequest.authenticated) {
             startDestination = "entries"
-
         }
+
+        startDestination = "edit_entry"
 
         setContent {
             val navController = rememberNavController()
@@ -103,6 +105,12 @@ class MainActivity : ComponentActivity() {
                                     model.projects.putAll(projects.associateBy { it.id })
                                 },
                                 goToLogin = { navController.navigate("login") }
+                            )
+                        }
+                        composable("edit_entry") {
+                            EditEntryView(
+                                projects = model.projects,
+                                entry = model.currentEntry
                             )
                         }
                     }

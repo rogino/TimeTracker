@@ -1,22 +1,17 @@
 package nz.ac.uclive.rog19.seng440.assignment1
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import nz.ac.uclive.rog19.seng440.assignment1.components.ColoredDot
 import nz.ac.uclive.rog19.seng440.assignment1.model.Project
 import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntry
 import nz.ac.uclive.rog19.seng440.assignment1.model.mockModel
@@ -55,9 +50,15 @@ fun TimeEntryListItem(
         )
     }
 
-    Column(modifier = Modifier.padding(vertical = 4.dp).then(modifier)) {
+    Column(
+        modifier = Modifier
+            .padding(vertical = 4.dp)
+            .then(modifier)
+    ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 6.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Top
         ) {
@@ -87,17 +88,9 @@ fun TimeEntryListItem(
             Row() {
                 project?.let { project ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .padding(end = 4.dp)
-                                .size(12.dp)
-                                .clip(CircleShape)
-                                .border(
-                                    width = 1.dp,
-                                    color = if (isSystemInDarkTheme()) Color.LightGray else Color.DarkGray,
-                                    shape = CircleShape
-                                )
-                                .background(project.colorCompose)
+                        ColoredDot(
+                            color = project.colorCompose,
+                            modifier = Modifier.padding(end = 4.dp)
                         )
                         Text(
                             text = project.name,

@@ -26,6 +26,7 @@ import kotlinx.coroutines.launch
 import nz.ac.uclive.rog19.seng440.assignment1.ApiRequest
 import nz.ac.uclive.rog19.seng440.assignment1.TAG
 import nz.ac.uclive.rog19.seng440.assignment1.model.Me
+import nz.ac.uclive.rog19.seng440.assignment1.newlineEtAlRegex
 import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.TimeTrackerTheme
 
 
@@ -42,7 +43,6 @@ fun LoginView(
     val coroutineScope = rememberCoroutineScope()
 
     val focusManager = LocalFocusManager.current
-    var notAllowedRegex = Regex("[\\r\\n\\t]")
 
     Column(verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -53,8 +53,8 @@ fun LoginView(
             label = { Text(text = "Email") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
             onValueChange = {
-                if (it.text.contains(notAllowedRegex)) {
-                    focusManager.moveFocus(FocusDirection.Down)
+                if (it.text.contains(newlineEtAlRegex)) {
+                    focusManager.moveFocus(FocusDirection.Next)
                 } else email = it
             },
             maxLines = 1,
@@ -68,7 +68,7 @@ fun LoginView(
             keyboardOptions =  KeyboardOptions(keyboardType = KeyboardType.Password),
             keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
             onValueChange = {
-                if (it.text.contains(notAllowedRegex)) {
+                if (it.text.contains(newlineEtAlRegex)) {
                     focusManager.clearFocus()
                 } else password = it
             },
