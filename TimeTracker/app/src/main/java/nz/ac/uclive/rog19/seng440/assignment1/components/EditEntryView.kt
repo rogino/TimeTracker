@@ -1,10 +1,10 @@
 package nz.ac.uclive.rog19.seng440.assignment1.components
 
-import android.os.Handler
-import android.os.Looper
 import android.text.format.DateFormat
-import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
@@ -13,18 +13,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.vanpra.composematerialdialogs.MaterialDialog
 import com.vanpra.composematerialdialogs.datetime.date.datepicker
 import com.vanpra.composematerialdialogs.datetime.time.timepicker
 import com.vanpra.composematerialdialogs.rememberMaterialDialogState
-import nz.ac.uclive.rog19.seng440.assignment1.TAG
 import nz.ac.uclive.rog19.seng440.assignment1.model.Project
 import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntryObservable
 import nz.ac.uclive.rog19.seng440.assignment1.model.mockModel
@@ -80,6 +79,7 @@ fun EditEntryView(
         )
 
         SelectTimeView(
+            label = "Start Time",
             date = entry.startTime,
             zoneId = zoneId,
             lastStopTime = lastEntryStopTime,
@@ -88,7 +88,14 @@ fun EditEntryView(
             setDate = { entry.startTime = it }
         )
 
+
+//        val dateFormat: Format = DateFormat.getDateFormat(LocalContext.current)
+//        val datePattern: String = (dateFormat as SimpleDateFormat).toLocalizedPattern()
+//        val timePattern: String = if (date != null) "hh:mm a" else "hh:mm:ss a"
+//
+
         SelectTimeView(
+            label = "End Time",
             date = entry.endTime,
             zoneId = zoneId,
             lastStopTime = null,
@@ -99,8 +106,16 @@ fun EditEntryView(
     }
 }
 
+class UnelevatedButttonElevation : ButtonElevation {
+    @Composable
+    override fun elevation(enabled: Boolean, interactionSource: InteractionSource): State<Dp> {
+        return remember { mutableStateOf(0.dp) }
+    }
+}
+
 @Composable
 fun SelectTimeView(
+    label: String,
     date: Instant?,
     zoneId: ZoneId,
     lastStopTime: Instant?,
@@ -110,6 +125,8 @@ fun SelectTimeView(
 ) {
     val dateDialog = rememberMaterialDialogState()
     val timeDialog = rememberMaterialDialogState()
+    val isExpanded = remember { MutableTransitionState(false) }
+
     val localDateTime = ZonedDateTime.ofInstant(date ?: now ?: Instant.now(), zoneId)
     val localDate = localDateTime.toLocalDate()
     val localTime = localDateTime.toLocalTime()
@@ -124,72 +141,70 @@ fun SelectTimeView(
         backgroundColor = Color.LightGray,
         contentColor = Color.Unspecified
     )
-    Column() {
-        Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
-            Button(
-                onClick = { dateDialog.show() },
-                colors = buttonColors,
-                modifier = Modifier.padding(end = 20.dp)
+    val expanded = isExpanded.targetState
+
+    fun toggleExpand() {
+        isExpanded.targetState = !isExpanded.targetState
+    }
+
+    Column(modifier = Modifier.background(Color.LightGray, shape = RoundedCornerShape(4.dp))) {
+        Button(
+            onClick = { toggleExpand() },
+            colors = buttonColors,
+            shape = RectangleShape,
+            contentPadding = PaddingValues(0.dp),
+            elevation = if (expanded) UnelevatedButttonElevation() else ButtonDefaults.elevation(),
+            modifier = Modifier
+                .defaultMinSize(minWidth = 0.dp, minHeight = 0.dp)
+
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                var dateText = dateFormatter.format(localDateTime)
-                if (localDate.isEqual(LocalDate.now())) dateText = "Today"
-                else if (localDate.isEqual(LocalDate.now().minusDays(1))) dateText = "Yesterday"
-                Text(
-                    text = dateText,
-                    style = MaterialTheme.typography.body1,
+                Text(text = label, style = MaterialTheme.typography.body1,
+                    modifier = Modifier.padding(start = ButtonDefaults.ContentPadding.calculateStartPadding(LayoutDirection.Ltr))
                 )
-            }
 
-            Button(onClick = { timeDialog.show() }, colors = buttonColors) {
-                Text(
-                    text = timeFormatter.format(localDateTime),
-                    style = MaterialTheme.typography.body1,
-                )
-            }
-        }
-
-        Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
-            for (i in arrayOf<Long?>(-5, -1, 1, 5, null)) {
-                Button(
-                    onClick = { setDate(if (i == null) Instant.now() else date!!.plusSeconds(60 * i)) },
-                    colors = buttonColors,
-                    enabled = date != null,
-                    shape = RoundedCornerShape(12.dp),
-                    contentPadding = PaddingValues(horizontal = 8.dp),
-                    modifier = Modifier
-                        .defaultMinSize(
-                            minWidth = ButtonDefaults.MinHeight,
-                            minHeight = ButtonDefaults.MinHeight,
+                Row() {
+                    Button(
+                        onClick = { if (expanded) dateDialog.show() else toggleExpand() },
+                        colors = buttonColors,
+                        elevation = if (expanded) ButtonDefaults.elevation() else UnelevatedButttonElevation(),
+                        modifier = Modifier.padding(end = 10.dp)
+                    ) {
+                        var dateText = dateFormatter.format(localDateTime)
+                        if (localDate.isEqual(LocalDate.now())) dateText = "Today"
+                        else if (localDate.isEqual(LocalDate.now().minusDays(1))) dateText =
+                            "Yesterday"
+                        Text(
+                            text = dateText,
+                            style = MaterialTheme.typography.body1,
                         )
-                        .padding(horizontal = 10.dp),
-                ) {
-                    Text(text = if (i == null) "now" else (if (i > 0) "+$i" else "$i"))
+                    }
+
+                    Button(
+                        onClick = { if (expanded) timeDialog.show() else toggleExpand() },
+                        colors = buttonColors,
+                        elevation = if (expanded) ButtonDefaults.elevation() else UnelevatedButttonElevation(),
+                        contentPadding = PaddingValues(start = 0.dp, end = ButtonDefaults.ContentPadding.calculateEndPadding(LayoutDirection.Ltr)),
+                        modifier = Modifier.width(120.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            Text(
+                                text = timeFormatter.format(localDateTime),
+                                style = MaterialTheme.typography.body1,
+                            )
+                        }
+
+                    }
                 }
             }
         }
-
-        Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
-            if (lastStopTime != null) {
-                Button(
-                    onClick = { setDate(lastStopTime) },
-                    colors = buttonColors,
-                    modifier = Modifier.padding(horizontal = 10.dp)
-                ) {
-                    Text(text = "Last stop time")
-                }
-            }
-            if (unsetText != null) {
-                Button(
-                    onClick = { setDate(null) },
-                    colors = buttonColors,
-                    enabled = date != null,
-                    modifier = Modifier.padding(horizontal = 10.dp)
-                ) {
-                    Text(text = unsetText)
-                }
-            }
-        }
-
 
         MaterialDialog(
             dialogState = dateDialog,
@@ -216,6 +231,54 @@ fun SelectTimeView(
                 val localDateTime = LocalDateTime.of(localDate, time)
                 val instant = localDateTime.toInstant(zoneId.rules.getOffset(localDateTime))
                 setDate(instant)
+            }
+        }
+
+        AnimatedVisibility(visibleState = isExpanded) {
+
+            Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
+                for (i in arrayOf<Long?>(-5, -1, 1, 5, null)) {
+                    Button(
+                        onClick = { setDate(if (i == null) Instant.now() else date!!.plusSeconds(60 * i)) },
+                        colors = buttonColors,
+                        enabled = i == null || date != null,
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp),
+                        modifier = Modifier
+                            .defaultMinSize(
+                                minWidth = ButtonDefaults.MinHeight,
+                                minHeight = ButtonDefaults.MinHeight,
+                            )
+                            .padding(horizontal = 10.dp),
+                    ) {
+                        Text(text = if (i == null) "now" else (if (i > 0) "+$i" else "$i"))
+                    }
+                }
+            }
+        }
+
+        // Needs to be in separate animation things for some reason
+        AnimatedVisibility(visibleState = isExpanded) {
+            Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
+                if (lastStopTime != null) {
+                    Button(
+                        onClick = { setDate(lastStopTime) },
+                        colors = buttonColors,
+                        modifier = Modifier.padding(horizontal = 10.dp)
+                    ) {
+                        Text(text = "Last stop time")
+                    }
+                }
+                if (unsetText != null) {
+                    Button(
+                        onClick = { setDate(null) },
+                        colors = buttonColors,
+                        enabled = date != null,
+                        modifier = Modifier.padding(horizontal = 10.dp)
+                    ) {
+                        Text(text = unsetText)
+                    }
+                }
             }
         }
     }
