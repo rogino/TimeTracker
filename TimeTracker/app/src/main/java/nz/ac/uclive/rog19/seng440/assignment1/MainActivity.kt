@@ -123,12 +123,20 @@ class MainActivity : ComponentActivity() {
                         composable("edit_entry") {
                             val mostRecent = model.timeEntries.first()
                             val current = currentlyEditedEntry
+                            var lastEntryStopTime: Instant? = null
+
+                            if (current.id == null && mostRecent != null) {
+                                lastEntryStopTime = mostRecent.endTime
+                            } else if (current.id == mostRecent?.id && model.timeEntries.count() >= 2) {
+                                lastEntryStopTime = model.timeEntries[1].endTime
+                            }
+
                             EditEntryView(
                                 projects = model.projects,
                                 entry = current,
                                 allTags = model.tags,
-                                enableStartAtLastStopTime = (current.id == null && mostRecent != null) ||
-                                                            (current.id == mostRecent?.id)
+                                now = now,
+                                lastEntryStopTime = lastEntryStopTime
                             )
                         }
                     }

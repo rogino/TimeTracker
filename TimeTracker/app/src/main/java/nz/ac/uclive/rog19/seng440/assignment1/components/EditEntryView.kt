@@ -1,32 +1,49 @@
 package nz.ac.uclive.rog19.seng440.assignment1.components
 
+import android.os.Handler
+import android.os.Looper
+import android.text.format.DateFormat
 import android.util.Log
-import android.widget.TimePicker
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.unit.sp
+import com.vanpra.composematerialdialogs.MaterialDialog
+import com.vanpra.composematerialdialogs.datetime.date.datepicker
+import com.vanpra.composematerialdialogs.datetime.time.timepicker
+import com.vanpra.composematerialdialogs.rememberMaterialDialogState
 import nz.ac.uclive.rog19.seng440.assignment1.TAG
 import nz.ac.uclive.rog19.seng440.assignment1.model.Project
 import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntryObservable
 import nz.ac.uclive.rog19.seng440.assignment1.model.mockModel
 import nz.ac.uclive.rog19.seng440.assignment1.newlineEtAlRegex
 import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.TimeTrackerTheme
+import java.text.Format
+import java.text.SimpleDateFormat
+import java.time.*
+import java.time.format.DateTimeFormatter
+
 
 @Composable
 fun EditEntryView(
     entry: TimeEntryObservable = remember { TimeEntryObservable() },
-    enableStartAtLastStopTime: Boolean = false,
+    lastEntryStopTime: Instant? = null,
     projects: Map<Long, Project>,
     allTags: Collection<String>,
+    now: State<Instant> = mutableStateOf(Instant.now()),
+    zoneId: ZoneId = Clock.systemDefaultZone().zone,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
@@ -61,8 +78,149 @@ fun EditEntryView(
                 else entry.tagNames.remove(tagName)
             }, allTags = allTags
         )
+
+        SelectTimeView(
+            date = entry.startTime,
+            zoneId = zoneId,
+            lastStopTime = lastEntryStopTime,
+            unsetText = null,
+            now = if (lastEntryStopTime != null) now.value else null,
+            setDate = { entry.startTime = it }
+        )
+
+        SelectTimeView(
+            date = entry.endTime,
+            zoneId = zoneId,
+            lastStopTime = null,
+            unsetText = "Continue time entry",
+            now = if (lastEntryStopTime != null) now.value else null,
+            setDate = { entry.endTime = it }
+        )
     }
 }
+
+@Composable
+fun SelectTimeView(
+    date: Instant?,
+    zoneId: ZoneId,
+    lastStopTime: Instant?,
+    unsetText: String?,
+    now: Instant?,
+    setDate: (Instant?) -> Unit
+) {
+    val dateDialog = rememberMaterialDialogState()
+    val timeDialog = rememberMaterialDialogState()
+    val localDateTime = ZonedDateTime.ofInstant(date ?: now ?: Instant.now(), zoneId)
+    val localDate = localDateTime.toLocalDate()
+    val localTime = localDateTime.toLocalTime()
+
+    val dateFormat: Format = DateFormat.getDateFormat(LocalContext.current)
+    val datePattern: String = (dateFormat as SimpleDateFormat).toLocalizedPattern()
+    val timePattern: String = if (date != null) "hh:mm a" else "hh:mm:ss a"
+    val dateFormatter = DateTimeFormatter.ofPattern(datePattern)
+    val timeFormatter = DateTimeFormatter.ofPattern(timePattern)
+
+    val buttonColors = ButtonDefaults.buttonColors(
+        backgroundColor = Color.LightGray,
+        contentColor = Color.Unspecified
+    )
+    Column() {
+        Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
+            Button(
+                onClick = { dateDialog.show() },
+                colors = buttonColors,
+                modifier = Modifier.padding(end = 20.dp)
+            ) {
+                var dateText = dateFormatter.format(localDateTime)
+                if (localDate.isEqual(LocalDate.now())) dateText = "Today"
+                else if (localDate.isEqual(LocalDate.now().minusDays(1))) dateText = "Yesterday"
+                Text(
+                    text = dateText,
+                    style = MaterialTheme.typography.body1,
+                )
+            }
+
+            Button(onClick = { timeDialog.show() }, colors = buttonColors) {
+                Text(
+                    text = timeFormatter.format(localDateTime),
+                    style = MaterialTheme.typography.body1,
+                )
+            }
+        }
+
+        Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
+            for (i in arrayOf<Long?>(-5, -1, 1, 5, null)) {
+                Button(
+                    onClick = { setDate(if (i == null) Instant.now() else date!!.plusSeconds(60 * i)) },
+                    colors = buttonColors,
+                    enabled = date != null,
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp),
+                    modifier = Modifier
+                        .defaultMinSize(
+                            minWidth = ButtonDefaults.MinHeight,
+                            minHeight = ButtonDefaults.MinHeight,
+                        )
+                        .padding(horizontal = 10.dp),
+                ) {
+                    Text(text = if (i == null) "now" else (if (i > 0) "+$i" else "$i"))
+                }
+            }
+        }
+
+        Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
+            if (lastStopTime != null) {
+                Button(
+                    onClick = { setDate(lastStopTime) },
+                    colors = buttonColors,
+                    modifier = Modifier.padding(horizontal = 10.dp)
+                ) {
+                    Text(text = "Last stop time")
+                }
+            }
+            if (unsetText != null) {
+                Button(
+                    onClick = { setDate(null) },
+                    colors = buttonColors,
+                    enabled = date != null,
+                    modifier = Modifier.padding(horizontal = 10.dp)
+                ) {
+                    Text(text = unsetText)
+                }
+            }
+        }
+
+
+        MaterialDialog(
+            dialogState = dateDialog,
+            buttons = {
+                positiveButton("Ok")
+                negativeButton("Cancel")
+            }
+        ) {
+            datepicker(initialDate = localDate) { date ->
+                val localDateTime = LocalDateTime.of(date, localTime)
+                val instant = localDateTime.toInstant(zoneId.rules.getOffset(localDateTime))
+                setDate(instant)
+            }
+        }
+
+        MaterialDialog(
+            dialogState = timeDialog,
+            buttons = {
+                positiveButton("Ok")
+                negativeButton("Cancel")
+            }
+        ) {
+            timepicker(initialTime = localTime) { time ->
+                val localDateTime = LocalDateTime.of(localDate, time)
+                val instant = localDateTime.toInstant(zoneId.rules.getOffset(localDateTime))
+                setDate(instant)
+            }
+        }
+    }
+}
+
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
