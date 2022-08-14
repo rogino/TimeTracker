@@ -1,6 +1,7 @@
 package nz.ac.uclive.rog19.seng440.assignment1.components
 
 import android.text.format.DateFormat
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.foundation.background
@@ -8,6 +9,8 @@ import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,6 +27,7 @@ import com.vanpra.composematerialdialogs.MaterialDialog
 import com.vanpra.composematerialdialogs.datetime.date.datepicker
 import com.vanpra.composematerialdialogs.datetime.time.timepicker
 import com.vanpra.composematerialdialogs.rememberMaterialDialogState
+import nz.ac.uclive.rog19.seng440.assignment1.TAG
 import nz.ac.uclive.rog19.seng440.assignment1.model.Project
 import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntryObservable
 import nz.ac.uclive.rog19.seng440.assignment1.model.mockModel
@@ -34,6 +38,58 @@ import java.text.SimpleDateFormat
 import java.time.*
 import java.time.format.DateTimeFormatter
 
+@Composable
+fun EditEntryPage(
+    entry: TimeEntryObservable = remember { TimeEntryObservable() },
+    lastEntryStopTime: Instant? = null,
+    projects: Map<Long, Project>,
+    allTags: Collection<String>,
+    now: State<Instant> = mutableStateOf(Instant.now()),
+    zoneId: ZoneId = Clock.systemDefaultZone().zone,
+    saveAndExit: () -> Unit,
+    cancelAndExit: () -> Unit,
+) {
+    val canSave = entry.startTime != null && entry.startTime!!.isBefore(entry.endTime ?: now.value)
+
+    Scaffold(topBar = {
+        TopAppBar(
+            title = {
+                Text(
+                    text = "${if (entry.id == null) "Create" else "Edit"} Time Entry"
+                )
+            },
+            navigationIcon = {
+                IconButton(onClick = {}) {
+                    Icon(Icons.Filled.ArrowBack, "backIcon")
+                }
+            },
+            actions = {
+                TextButton(
+                    onClick = {
+                        saveAndExit()
+                    }, enabled = canSave,
+                    colors = ButtonDefaults.buttonColors(
+                        contentColor = Color.White,
+                        disabledContentColor = Color.Unspecified.copy(alpha = 0.6f),
+                        backgroundColor = Color.Transparent,
+                        disabledBackgroundColor = Color.Transparent
+                    )
+                ) {
+                    Text(text = "Save", style = MaterialTheme.typography.body1)
+                }
+            }
+        )
+    }) {
+        EditEntryView(
+            entry = entry,
+            lastEntryStopTime = lastEntryStopTime,
+            projects = projects,
+            allTags = allTags,
+            now = now,
+            zoneId = zoneId,
+            modifier = Modifier.padding(it))
+    }
+}
 
 @Composable
 fun EditEntryView(
@@ -45,65 +101,57 @@ fun EditEntryView(
     zoneId: ZoneId = Clock.systemDefaultZone().zone,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier) {
-        var tagListOpen by remember { mutableStateOf(false) }
+        Column(modifier = modifier) {
+            val coroutineScope = rememberCoroutineScope()
+            val focusManager = LocalFocusManager.current
 
-        val coroutineScope = rememberCoroutineScope()
-        val focusManager = LocalFocusManager.current
+            TextField(
+                value = entry.description,
+                label = { Text(text = "Description") },
+                onValueChange = {
+                    if (it.contains(newlineEtAlRegex)) {
+                        focusManager.moveFocus(FocusDirection.Next)
+                    } else {
+                        entry.description = it
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
 
-        TextField(
-            value = entry.description,
-            label = { Text(text = "Description") },
-            onValueChange = {
-                if (it.contains(newlineEtAlRegex)) {
-                    focusManager.moveFocus(FocusDirection.Next)
-                } else {
-                    entry.description = it
-                }
-            },
-            modifier = Modifier.fillMaxWidth()
-        )
+            SelectProjectDropdown(
+                selectedProjectId = entry.projectId,
+                projectSelected = { entry.projectId = it },
+                projects = projects
+            )
 
-        SelectProjectDropdown(
-            selectedProjectId = entry.projectId,
-            projectSelected = { entry.projectId = it },
-            projects = projects
-        )
+            SelectTagsDropdown(
+                selectedTags = entry.tagNames,
+                tagToggled = { tagName, add ->
+                    if (add) entry.tagNames.add(tagName)
+                    else entry.tagNames.remove(tagName)
+                }, allTags = allTags
+            )
 
-        SelectTagsDropdown(
-            selectedTags = entry.tagNames,
-            tagToggled = { tagName, add ->
-                if (add) entry.tagNames.add(tagName)
-                else entry.tagNames.remove(tagName)
-            }, allTags = allTags
-        )
+            SelectTimeView(
+                label = "Start Time",
+                date = entry.startTime,
+                zoneId = zoneId,
+                lastStopTime = lastEntryStopTime,
+                unsetText = null,
+                now = if (lastEntryStopTime != null) now.value else null,
+                setDate = { entry.startTime = it }
+            )
 
-        SelectTimeView(
-            label = "Start Time",
-            date = entry.startTime,
-            zoneId = zoneId,
-            lastStopTime = lastEntryStopTime,
-            unsetText = null,
-            now = if (lastEntryStopTime != null) now.value else null,
-            setDate = { entry.startTime = it }
-        )
-
-
-//        val dateFormat: Format = DateFormat.getDateFormat(LocalContext.current)
-//        val datePattern: String = (dateFormat as SimpleDateFormat).toLocalizedPattern()
-//        val timePattern: String = if (date != null) "hh:mm a" else "hh:mm:ss a"
-//
-
-        SelectTimeView(
-            label = "End Time",
-            date = entry.endTime,
-            zoneId = zoneId,
-            lastStopTime = null,
-            unsetText = "Continue time entry",
-            now = if (lastEntryStopTime != null) now.value else null,
-            setDate = { entry.endTime = it }
-        )
-    }
+            SelectTimeView(
+                label = "End Time",
+                date = entry.endTime,
+                zoneId = zoneId,
+                lastStopTime = null,
+                unsetText = "Continue time entry",
+                now = if (lastEntryStopTime != null) now.value else null,
+                setDate = { entry.endTime = it }
+            )
+        }
 }
 
 class UnelevatedButttonElevation : ButtonElevation {
@@ -112,6 +160,7 @@ class UnelevatedButttonElevation : ButtonElevation {
         return remember { mutableStateOf(0.dp) }
     }
 }
+
 
 @Composable
 fun SelectTimeView(
@@ -137,7 +186,7 @@ fun SelectTimeView(
     val dateFormatter = DateTimeFormatter.ofPattern(datePattern)
     val timeFormatter = DateTimeFormatter.ofPattern(timePattern)
 
-    val buttonColors = ButtonDefaults.buttonColors(
+    val buttonColors: ButtonColors = ButtonDefaults.buttonColors(
         backgroundColor = Color.LightGray,
         contentColor = Color.Unspecified
     )
@@ -158,15 +207,17 @@ fun SelectTimeView(
                 .defaultMinSize(minWidth = 0.dp, minHeight = 0.dp)
 
         ) {
+            val buttonHorizontalPadding =
+                ButtonDefaults.ContentPadding.calculateEndPadding(LayoutDirection.Ltr)
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(text = label, style = MaterialTheme.typography.body1,
-                    modifier = Modifier.padding(start = ButtonDefaults.ContentPadding.calculateStartPadding(LayoutDirection.Ltr))
+                Text(
+                    text = label, style = MaterialTheme.typography.body1,
+                    modifier = Modifier.padding(start = buttonHorizontalPadding)
                 )
-
                 Row() {
                     Button(
                         onClick = { if (expanded) dateDialog.show() else toggleExpand() },
@@ -188,8 +239,10 @@ fun SelectTimeView(
                         onClick = { if (expanded) timeDialog.show() else toggleExpand() },
                         colors = buttonColors,
                         elevation = if (expanded) ButtonDefaults.elevation() else UnelevatedButttonElevation(),
-                        contentPadding = PaddingValues(start = 0.dp, end = ButtonDefaults.ContentPadding.calculateEndPadding(LayoutDirection.Ltr)),
-                        modifier = Modifier.width(120.dp),
+                        contentPadding = PaddingValues(start = 0.dp, end = buttonHorizontalPadding),
+                        modifier = Modifier
+                            .padding(end = buttonHorizontalPadding)
+                            .width(120.dp),
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -414,10 +467,12 @@ fun EditEntry_Preview() {
             verticalArrangement = Arrangement.Center,
             modifier = Modifier.height(600.dp)
         ) {
-            EditEntryView(
+            EditEntryPage(
                 entry = mockModel.currentEntry!!.toObservable(),
                 projects = mockModel.projects,
-                allTags = mockModel.tags
+                allTags = mockModel.tags,
+                saveAndExit = {},
+                cancelAndExit = {}
             )
         }
     }

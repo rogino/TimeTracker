@@ -19,6 +19,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.launch
+import nz.ac.uclive.rog19.seng440.assignment1.components.EditEntryPage
 import nz.ac.uclive.rog19.seng440.assignment1.components.EditEntryView
 import nz.ac.uclive.rog19.seng440.assignment1.components.LoginView
 import nz.ac.uclive.rog19.seng440.assignment1.model.GodModel
@@ -131,12 +132,19 @@ class MainActivity : ComponentActivity() {
                                 lastEntryStopTime = model.timeEntries[1].endTime
                             }
 
-                            EditEntryView(
+                            EditEntryPage(
                                 projects = model.projects,
                                 entry = current,
                                 allTags = model.tags,
                                 now = now,
-                                lastEntryStopTime = lastEntryStopTime
+                                lastEntryStopTime = lastEntryStopTime,
+                                saveAndExit = {
+                                    navController.popBackStack()
+                                },
+                                cancelAndExit = {
+                                    currentlyEditedEntry = TimeEntryObservable()
+                                    navController.popBackStack()
+                                }
                             )
                         }
                     }
