@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.Button
+import androidx.compose.material.LinearProgressIndicator
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.runtime.*
@@ -98,6 +99,10 @@ fun LoginView(
                       password.text.length > 8
         ) {
             Text(text = "Login")
+        }
+
+        if (requestInProgress) {
+            LinearProgressIndicator()
         }
 
         if (errorMessage.isNotEmpty()) {
