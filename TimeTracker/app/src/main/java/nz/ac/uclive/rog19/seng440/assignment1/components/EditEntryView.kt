@@ -1,14 +1,8 @@
 package nz.ac.uclive.rog19.seng440.assignment1.components
 
-import android.text.format.DateFormat
-import android.util.Log
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -17,26 +11,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import com.vanpra.composematerialdialogs.MaterialDialog
-import com.vanpra.composematerialdialogs.datetime.date.datepicker
-import com.vanpra.composematerialdialogs.datetime.time.timepicker
-import com.vanpra.composematerialdialogs.rememberMaterialDialogState
 import nz.ac.uclive.rog19.seng440.assignment1.model.Project
 import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntryObservable
 import nz.ac.uclive.rog19.seng440.assignment1.model.mockModel
 import nz.ac.uclive.rog19.seng440.assignment1.newlineEtAlRegex
 import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.TimeTrackerTheme
-import java.text.Format
-import java.text.SimpleDateFormat
-import java.time.*
-import java.time.format.DateTimeFormatter
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneId
 
 @Composable
 fun EditEntryPage(
@@ -45,7 +31,8 @@ fun EditEntryPage(
     projects: Map<Long, Project>,
     allTags: Collection<String>,
     now: State<Instant> = mutableStateOf(Instant.now()),
-zoneId: ZoneId = Clock.systemDefaultZone().zone,
+    zoneId: ZoneId = Clock.systemDefaultZone().zone,
+    allowEditing: Boolean = true,
     saveAndExit: () -> Unit,
     cancelAndExit: () -> Unit,
     modifier: Modifier = Modifier
@@ -68,7 +55,7 @@ zoneId: ZoneId = Clock.systemDefaultZone().zone,
                 TextButton(
                     onClick = {
                         saveAndExit()
-                    }, enabled = canSave,
+                    }, enabled = canSave && allowEditing,
                     colors = ButtonDefaults.buttonColors(
                         contentColor = Color.White,
                         disabledContentColor = Color.Unspecified.copy(alpha = 0.6f),
@@ -89,7 +76,8 @@ zoneId: ZoneId = Clock.systemDefaultZone().zone,
             allTags = allTags,
             now = now,
             zoneId = zoneId,
-            modifier = modifier
+            allowEditing = allowEditing,
+            modifier = modifier,
         )
     }
 }
@@ -103,6 +91,7 @@ fun EditEntryView(
     allTags: Collection<String>,
     now: State<Instant> = mutableStateOf(Instant.now()),
     zoneId: ZoneId = Clock.systemDefaultZone().zone,
+    allowEditing: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val padding = 12.dp
@@ -122,6 +111,7 @@ fun EditEntryView(
                     entry.description = it
                 }
             },
+            enabled = allowEditing,
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -130,7 +120,8 @@ fun EditEntryView(
         SelectProjectDropdown(
             selectedProjectId = entry.projectId,
             projectSelected = { entry.projectId = it },
-            projects = projects
+            projects = projects,
+            allowEditing = allowEditing
         )
 
         Spacer(modifier = Modifier.height(padding))
@@ -140,7 +131,8 @@ fun EditEntryView(
             tagToggled = { tagName, add ->
                 if (add) entry.tagNames.add(tagName)
                 else entry.tagNames.remove(tagName)
-            }, allTags = allTags
+            }, allTags = allTags,
+            allowEditing = allowEditing
         )
 
         Spacer(modifier = Modifier.height(padding))
@@ -152,7 +144,8 @@ fun EditEntryView(
             lastStopTime = lastEntryStopTime,
             unsetText = null,
             now = if (lastEntryStopTime != null) now.value else null,
-            setDate = { entry.startTime = it }
+            setDate = { entry.startTime = it },
+            allowEditing = allowEditing
         )
 
         Spacer(modifier = Modifier.height(padding))
@@ -165,6 +158,7 @@ fun EditEntryView(
             unsetText = "Continue time entry",
             now = if (lastEntryStopTime != null) now.value else null,
             setDate = { entry.endTime = it },
+            allowEditing = allowEditing
         )
     }
 }
@@ -177,17 +171,17 @@ class UnelevatedButtonElevation : ButtonElevation {
 }
 
 
-
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun SelectProjectDropdown(
     selectedProjectId: Long?,
     projectSelected: (Long?) -> Unit,
     projects: Map<Long, Project>,
+    allowEditing: Boolean = true,
     listOpen: MutableState<Boolean> = remember { mutableStateOf(false) }
 ) {
     ExposedDropdownMenuBox(
-        expanded = listOpen.value,
+        expanded = listOpen.value && allowEditing,
         onExpandedChange = { listOpen.value = it },
         modifier = Modifier
     ) {
@@ -199,6 +193,7 @@ fun SelectProjectDropdown(
         val selectedProject = if (selectedProjectId == null) null else projects[selectedProjectId!!]
         OutlinedTextField(
             readOnly = true,
+            enabled = allowEditing,
             value = if (selectedProject == null) "[No project selected]" else (selectedProject?.name
                 ?: "Unknown"),
             onValueChange = {},
@@ -206,13 +201,12 @@ fun SelectProjectDropdown(
             trailingIcon = {
                 ColoredDot(project = selectedProject)
             },
-//                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = projectListOpen) },
             modifier = Modifier
                 .fillMaxWidth()
         )
         // Not in the correct position in the Compose live preview
         DropdownMenu(
-            expanded = listOpen.value,
+            expanded = listOpen.value && allowEditing,
             onDismissRequest = { listOpen.value = false },
             // https://stackoverflow.com/a/70683378
             modifier = Modifier.exposedDropdownSize()
@@ -221,7 +215,9 @@ fun SelectProjectDropdown(
                 val isSelected = selectedProjectId == project?.id
                 DropdownMenuItem(
                     onClick = {
-                        projectSelected(project?.id)
+                        if (allowEditing) {
+                            projectSelected(project?.id)
+                        }
                         listOpen.value = false
                     },
                     modifier = Modifier.background(
@@ -248,16 +244,18 @@ fun SelectTagsDropdown(
     selectedTags: Collection<String>,
     tagToggled: (String, Boolean) -> Unit,
     allTags: Collection<String>,
+    allowEditing: Boolean = true,
     listOpen: MutableState<Boolean> = remember { mutableStateOf(false) }
 ) {
     ExposedDropdownMenuBox(
-        expanded = listOpen.value,
+        expanded = listOpen.value && allowEditing,
         onExpandedChange = { listOpen.value = it },
         modifier = Modifier
     ) {
 //         https://stackoverflow.com/questions/67111020/exposed-drop-down-menu-for-jetpack-compose
         OutlinedTextField(
             readOnly = true,
+            enabled = allowEditing,
             value = if (selectedTags.isNotEmpty()) selectedTags.joinToString { it } else "[No tags selected]",
             onValueChange = {},
             label = { Text(text = "Tags") },
@@ -267,7 +265,7 @@ fun SelectTagsDropdown(
         )
 
         DropdownMenu(
-            expanded = listOpen.value,
+            expanded = listOpen.value && allowEditing,
             onDismissRequest = { listOpen.value = false },
             // https://stackoverflow.com/a/70683378
             modifier = Modifier.exposedDropdownSize()
@@ -277,6 +275,7 @@ fun SelectTagsDropdown(
                 val isSelected = index != -1
                 DropdownMenuItem(
                     onClick = {
+                        if (!allowEditing) return@DropdownMenuItem
                         if (isSelected) {
                             tagToggled(tagName, false)
                         } else {

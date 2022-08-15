@@ -36,7 +36,8 @@ fun SelectTimeView(
     lastStopTime: Instant?,
     unsetText: String?,
     now: Instant?,
-    setDate: (Instant?) -> Unit
+    setDate: (Instant?) -> Unit,
+    allowEditing: Boolean = true
 ) {
     val dateDialog = rememberMaterialDialogState()
     val timeDialog = rememberMaterialDialogState()
@@ -106,6 +107,7 @@ fun SelectTimeView(
                     Button(
                         onClick = { if (expanded) dateDialog.show() else toggleExpand() },
                         colors = outlinedTextFieldLikeButtonColors,
+                        enabled = allowEditing,
                         elevation = if (expanded) ButtonDefaults.elevation() else UnelevatedButtonElevation(),
                         modifier = Modifier.padding(end = 10.dp)
                     ) {
@@ -122,6 +124,7 @@ fun SelectTimeView(
                     Button(
                         onClick = { if (expanded) timeDialog.show() else toggleExpand() },
                         colors = outlinedTextFieldLikeButtonColors,
+                        enabled = allowEditing,
                         elevation = if (expanded) ButtonDefaults.elevation() else UnelevatedButtonElevation(),
                         contentPadding = PaddingValues(start = 0.dp, end = buttonHorizontalPadding),
                         modifier = Modifier
@@ -148,7 +151,8 @@ fun SelectTimeView(
                 setDate = setDate,
                 lastStopTime = lastStopTime,
                 unsetText = unsetText,
-                buttonColors = outlinedBoringButtonColors
+                buttonColors = outlinedBoringButtonColors,
+                allowEditing = allowEditing,
             )
         }
     }
@@ -190,7 +194,8 @@ fun SelectTimeViewDeltaButtons(
     setDate: (Instant?) -> Unit,
     lastStopTime: Instant?,
     unsetText: String?,
-    buttonColors: ButtonColors = ButtonDefaults.outlinedButtonColors()
+    buttonColors: ButtonColors = ButtonDefaults.outlinedButtonColors(),
+    allowEditing: Boolean = true
 ) {
     AnimatedVisibility(visibleState = isExpanded, enter = fadeIn()) {
         Row(
@@ -207,7 +212,7 @@ fun SelectTimeViewDeltaButtons(
                         )
                     },
                     colors = buttonColors,
-                    enabled = i == null || date != null,
+                    enabled = allowEditing && (i == null || date != null),
                     contentPadding = PaddingValues(horizontal = 8.dp),
                     modifier = Modifier
                         .defaultMinSize(
@@ -232,6 +237,7 @@ fun SelectTimeViewDeltaButtons(
                 Button(
                     onClick = { setDate(lastStopTime) },
                     colors = buttonColors,
+                    enabled = allowEditing,
                     modifier = Modifier.padding(horizontal = 10.dp)
                 ) {
                     Text(text = "Last stop time")
@@ -241,7 +247,7 @@ fun SelectTimeViewDeltaButtons(
                 Button(
                     onClick = { setDate(null) },
                     colors = buttonColors,
-                    enabled = date != null,
+                    enabled = allowEditing && date != null,
                     modifier = Modifier.padding(horizontal = 10.dp)
                 ) {
                     Text(text = unsetText)
