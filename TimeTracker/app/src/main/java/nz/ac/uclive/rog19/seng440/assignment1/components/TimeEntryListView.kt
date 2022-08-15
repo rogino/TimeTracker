@@ -84,8 +84,8 @@ fun TimeEntryListView(
     now: State<Instant> = mutableStateOf(Instant.now()),
     apiRequest: ApiRequest? = null,
     setData: ((List<TimeEntry>, List<Project>) -> Unit)? = null,
-    editEntry: ((TimeEntry?) -> Unit)? = null,
-    goToLogin: (() -> Unit)? = null
+    logout: (() -> Unit)? = null,
+    editEntry: ((TimeEntry?) -> Unit)? = null
 ) {
     var isRefreshing by remember { mutableStateOf<Boolean>(false) }
     var coroutineScope = rememberCoroutineScope()
@@ -114,7 +114,9 @@ fun TimeEntryListView(
             }
         }) {
             LazyColumn(modifier = modifier) {
-                groupEntries(entries, zoneId, now.value).forEachIndexed { i, group ->
+                // TODO somehow cache, or send in LocalDate as a state object: don't read now.value
+                // in order to prevent unnecessary redraws
+                groupEntries(entries, zoneId, Instant.now()).forEachIndexed { i, group ->
                     item {
                         Row(
                             modifier = Modifier
@@ -142,7 +144,7 @@ fun TimeEntryListView(
                             timeEntry = entry,
                             projects = projects,
                             zoneId = zoneId,
-                            now = if (entry.isOngoing) now.value else null,
+                            now = now,
                             modifier = Modifier.clickable {
                                 editEntry?.invoke(entry)
                             }

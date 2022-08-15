@@ -1,8 +1,12 @@
 package nz.ac.uclive.rog19.seng440.assignment1
 
+import android.util.Log
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -26,22 +30,27 @@ fun TimeEntryListItem(
     timeEntry: TimeEntry,
     projects: Map<Long, Project>,
     zoneId: ZoneId = Clock.systemDefaultZone().zone,
-    now: Instant? = Instant.now()
+    now: State<Instant> = mutableStateOf(Instant.now())
 ) {
     val project = projects[timeEntry.projectId]
     val zonedStart = ZonedDateTime.ofInstant(timeEntry.startTime, zoneId)
 
-    val timeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
+    val timeFormatter = DateTimeFormatter.ofPattern("hh:mm a")
 
     var timeText = zonedStart.format(timeFormatter)
     timeEntry.endTime?.let { endTime ->
         val zonedEnd = ZonedDateTime.ofInstant(endTime, zoneId)
-        timeText += " to ${zonedEnd.format(timeFormatter)}"
+        if (!(zonedStart.hour <= 12).xor(zonedEnd.hour <= 12) &&
+        zonedStart.toLocalDate().isEqual(zonedEnd.toLocalDate())) {
+            // Don't repeat am/pm twice
+            timeText = zonedStart.format(DateTimeFormatter.ofPattern("hh:mm"))
+        }
+        timeText += " - ${zonedEnd.format(timeFormatter)}"
     } ?: run {
         timeText = "Started $timeText"
     }
 
-    var endTime = timeEntry.endTime ?: now
+    var endTime = timeEntry.endTime ?: now.value
     var durationText = endTime?.let {
         durationFormatter(
             duration = Duration.between(timeEntry.startTime, it),
@@ -114,7 +123,7 @@ fun TimeEntryListItem(
             Text(
                 text = timeText,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                modifier = Modifier.width(IntrinsicSize.Max).border(1.dp, Color.Red)
             )
         }
     }

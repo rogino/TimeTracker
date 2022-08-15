@@ -113,7 +113,7 @@ class MainActivity : ComponentActivity() {
 
                                     model.tags = getTagsFromEntries(model.timeEntries).toMutableStateList()
                                 },
-                                goToLogin = { navController.navigate("login") },
+                                logout = { navController.navigate("login") },
                                 editEntry = { entry ->
                                     currentlyEditedEntry = entry?.toObservable() ?: TimeEntryObservable()
                                     navController.navigate("edit_entry")
@@ -142,7 +142,6 @@ class MainActivity : ComponentActivity() {
                                     navController.popBackStack()
                                 },
                                 cancelAndExit = {
-                                    currentlyEditedEntry = TimeEntryObservable()
                                     navController.popBackStack()
                                 }
                             )

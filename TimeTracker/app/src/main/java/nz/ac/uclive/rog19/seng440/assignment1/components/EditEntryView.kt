@@ -59,7 +59,7 @@ fun EditEntryPage(
                 )
             },
             navigationIcon = {
-                IconButton(onClick = {}) {
+                IconButton(onClick = { cancelAndExit() }) {
                     Icon(Icons.Filled.ArrowBack, "backIcon")
                 }
             },
