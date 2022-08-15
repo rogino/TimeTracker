@@ -1,10 +1,10 @@
 package nz.ac.uclive.rog19.seng440.assignment1.components
 
 import android.text.format.DateFormat
-import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,7 +27,6 @@ import com.vanpra.composematerialdialogs.MaterialDialog
 import com.vanpra.composematerialdialogs.datetime.date.datepicker
 import com.vanpra.composematerialdialogs.datetime.time.timepicker
 import com.vanpra.composematerialdialogs.rememberMaterialDialogState
-import nz.ac.uclive.rog19.seng440.assignment1.TAG
 import nz.ac.uclive.rog19.seng440.assignment1.model.Project
 import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntryObservable
 import nz.ac.uclive.rog19.seng440.assignment1.model.mockModel
@@ -87,9 +86,11 @@ fun EditEntryPage(
             allTags = allTags,
             now = now,
             zoneId = zoneId,
-            modifier = Modifier.padding(it))
+            modifier = Modifier.padding(it)
+        )
     }
 }
+
 
 @Composable
 fun EditEntryView(
@@ -101,57 +102,66 @@ fun EditEntryView(
     zoneId: ZoneId = Clock.systemDefaultZone().zone,
     modifier: Modifier = Modifier
 ) {
-        Column(modifier = modifier) {
-            val coroutineScope = rememberCoroutineScope()
-            val focusManager = LocalFocusManager.current
+    val padding = 12.dp
+    Column(modifier = modifier) {
+        val coroutineScope = rememberCoroutineScope()
+        val focusManager = LocalFocusManager.current
 
-            TextField(
-                value = entry.description,
-                label = { Text(text = "Description") },
-                onValueChange = {
-                    if (it.contains(newlineEtAlRegex)) {
-                        focusManager.moveFocus(FocusDirection.Next)
-                    } else {
-                        entry.description = it
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
+        OutlinedTextField(
+            value = entry.description,
+            label = { Text(text = "Description") },
+            onValueChange = {
+                if (it.contains(newlineEtAlRegex)) {
+                    focusManager.moveFocus(FocusDirection.Next)
+                } else {
+                    entry.description = it
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
 
-            SelectProjectDropdown(
-                selectedProjectId = entry.projectId,
-                projectSelected = { entry.projectId = it },
-                projects = projects
-            )
+        Spacer(modifier = Modifier.height(padding))
 
-            SelectTagsDropdown(
-                selectedTags = entry.tagNames,
-                tagToggled = { tagName, add ->
-                    if (add) entry.tagNames.add(tagName)
-                    else entry.tagNames.remove(tagName)
-                }, allTags = allTags
-            )
+        SelectProjectDropdown(
+            selectedProjectId = entry.projectId,
+            projectSelected = { entry.projectId = it },
+            projects = projects
+        )
 
-            SelectTimeView(
-                label = "Start Time",
-                date = entry.startTime,
-                zoneId = zoneId,
-                lastStopTime = lastEntryStopTime,
-                unsetText = null,
-                now = if (lastEntryStopTime != null) now.value else null,
-                setDate = { entry.startTime = it }
-            )
+        Spacer(modifier = Modifier.height(padding))
 
-            SelectTimeView(
-                label = "End Time",
-                date = entry.endTime,
-                zoneId = zoneId,
-                lastStopTime = null,
-                unsetText = "Continue time entry",
-                now = if (lastEntryStopTime != null) now.value else null,
-                setDate = { entry.endTime = it }
-            )
-        }
+        SelectTagsDropdown(
+            selectedTags = entry.tagNames,
+            tagToggled = { tagName, add ->
+                if (add) entry.tagNames.add(tagName)
+                else entry.tagNames.remove(tagName)
+            }, allTags = allTags
+        )
+
+        Spacer(modifier = Modifier.height(padding))
+
+        SelectTimeView(
+            label = "Start Time",
+            date = entry.startTime,
+            zoneId = zoneId,
+            lastStopTime = lastEntryStopTime,
+            unsetText = null,
+            now = if (lastEntryStopTime != null) now.value else null,
+            setDate = { entry.startTime = it }
+        )
+
+        Spacer(modifier = Modifier.height(padding))
+
+        SelectTimeView(
+            label = "End Time",
+            date = entry.endTime,
+            zoneId = zoneId,
+            lastStopTime = null,
+            unsetText = "Continue time entry",
+            now = if (lastEntryStopTime != null) now.value else null,
+            setDate = { entry.endTime = it }
+        )
+    }
 }
 
 class UnelevatedButttonElevation : ButtonElevation {
@@ -187,7 +197,7 @@ fun SelectTimeView(
     val timeFormatter = DateTimeFormatter.ofPattern(timePattern)
 
     val buttonColors: ButtonColors = ButtonDefaults.buttonColors(
-        backgroundColor = Color.LightGray,
+        backgroundColor = MaterialTheme.colors.background,
         contentColor = Color.Unspecified
     )
     val expanded = isExpanded.targetState
@@ -196,7 +206,18 @@ fun SelectTimeView(
         isExpanded.targetState = !isExpanded.targetState
     }
 
-    Column(modifier = Modifier.background(Color.LightGray, shape = RoundedCornerShape(4.dp))) {
+    Column(
+        modifier = Modifier
+            .background(
+                MaterialTheme.colors.background,
+                TextFieldDefaults.OutlinedTextFieldShape
+            )
+            .border(
+                TextFieldDefaults.UnfocusedBorderThickness,
+                Color.LightGray,
+                TextFieldDefaults.OutlinedTextFieldShape
+            )
+    ) {
         Button(
             onClick = { toggleExpand() },
             colors = buttonColors,
@@ -357,7 +378,7 @@ fun SelectProjectDropdown(
         projectsAndNull.addAll(projects.values.sortedBy { it.name })
 
         val selectedProject = if (selectedProjectId == null) null else projects[selectedProjectId!!]
-        TextField(
+        OutlinedTextField(
             readOnly = true,
             value = if (selectedProject == null) "[No project selected]" else (selectedProject?.name
                 ?: "Unknown"),
@@ -367,7 +388,6 @@ fun SelectProjectDropdown(
                 ColoredDot(project = selectedProject)
             },
 //                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = projectListOpen) },
-            colors = ExposedDropdownMenuDefaults.textFieldColors(),
             modifier = Modifier
                 .fillMaxWidth()
         )
@@ -417,13 +437,12 @@ fun SelectTagsDropdown(
         modifier = Modifier
     ) {
 //         https://stackoverflow.com/questions/67111020/exposed-drop-down-menu-for-jetpack-compose
-        TextField(
+        OutlinedTextField(
             readOnly = true,
             value = if (selectedTags.isNotEmpty()) selectedTags.joinToString { it } else "[No tags selected]",
             onValueChange = {},
             label = { Text(text = "Tags") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = listOpen.value) },
-            colors = ExposedDropdownMenuDefaults.textFieldColors(),
             modifier = Modifier
                 .fillMaxWidth()
         )
