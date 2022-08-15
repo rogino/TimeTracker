@@ -143,7 +143,8 @@ class MainActivity : ComponentActivity() {
                                 },
                                 cancelAndExit = {
                                     navController.popBackStack()
-                                }
+                                },
+                                modifier = Modifier.padding(horizontal = 16.dp)
                             )
                         }
                     }
