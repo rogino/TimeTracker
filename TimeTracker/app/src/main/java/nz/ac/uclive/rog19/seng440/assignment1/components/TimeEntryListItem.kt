@@ -1,6 +1,5 @@
 package nz.ac.uclive.rog19.seng440.assignment1
 
-import android.util.Log
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Text
@@ -22,7 +21,6 @@ import nz.ac.uclive.rog19.seng440.assignment1.model.mockModel
 import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.TimeTrackerTheme
 import java.time.*
 import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 
 @Composable
 fun TimeEntryListItem(
@@ -41,7 +39,8 @@ fun TimeEntryListItem(
     timeEntry.endTime?.let { endTime ->
         val zonedEnd = ZonedDateTime.ofInstant(endTime, zoneId)
         if (!(zonedStart.hour <= 12).xor(zonedEnd.hour <= 12) &&
-        zonedStart.toLocalDate().isEqual(zonedEnd.toLocalDate())) {
+            zonedStart.toLocalDate().isEqual(zonedEnd.toLocalDate())
+        ) {
             // Don't repeat am/pm twice
             timeText = zonedStart.format(DateTimeFormatter.ofPattern("hh:mm"))
         }
@@ -94,21 +93,23 @@ fun TimeEntryListItem(
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Row() {
-                project?.let { project ->
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        ColoredDot(
-                            color = project.colorCompose,
-                            modifier = Modifier.padding(end = 4.dp)
-                        )
-                        Text(
-                            text = project.name,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
+            project?.let { project ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    ColoredDot(
+                        color = project.colorCompose,
+                        modifier = Modifier.padding(end = 4.dp)
+                    )
+                    Text(
+                        text = project.name,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
+            }
 
+            Row(horizontalArrangement = Arrangement.Start,
+                modifier = Modifier.weight(1f)
+            ) {
                 timeEntry.tagNames?.let {
                     Text(
                         text = it.joinToString { it },
@@ -123,7 +124,10 @@ fun TimeEntryListItem(
             Text(
                 text = timeText,
                 maxLines = 1,
-                modifier = Modifier.width(IntrinsicSize.Max).border(1.dp, Color.Red)
+                overflow = TextOverflow.Visible,
+                modifier = Modifier
+                    .padding(start = 8.dp)
+                    .width(IntrinsicSize.Max)
             )
         }
     }
