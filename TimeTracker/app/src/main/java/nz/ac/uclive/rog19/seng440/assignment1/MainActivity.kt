@@ -67,6 +67,7 @@ class MainActivity : ComponentActivity() {
             startDestination = "entries"
         }
 
+        val paddingModifier = Modifier.padding(horizontal = 16.dp).padding(top = 8.dp)
 
         setContent {
             val navController = rememberNavController()
@@ -99,7 +100,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                         composable("entries") {
-                            TimeEntryListView(
+                            TimeEntryListPage(
                                 entries = model.timeEntries,
                                 projects = model.projects,
                                 now = now,
@@ -118,7 +119,7 @@ class MainActivity : ComponentActivity() {
                                     currentlyEditedEntry = entry?.toObservable() ?: TimeEntryObservable()
                                     navController.navigate("edit_entry")
                                 },
-                                modifier = Modifier.padding(horizontal = 16.dp)
+                                modifier = paddingModifier
                             )
                         }
                         composable("edit_entry") {
@@ -144,7 +145,7 @@ class MainActivity : ComponentActivity() {
                                 cancelAndExit = {
                                     navController.popBackStack()
                                 },
-                                modifier = Modifier.padding(horizontal = 16.dp)
+                                modifier = paddingModifier
                             )
                         }
                     }

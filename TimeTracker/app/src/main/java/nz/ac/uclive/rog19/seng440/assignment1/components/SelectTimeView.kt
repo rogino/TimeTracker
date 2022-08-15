@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.modifier.modifierLocalOf
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -37,7 +38,8 @@ fun SelectTimeView(
     unsetText: String?,
     now: Instant?,
     setDate: (Instant?) -> Unit,
-    allowEditing: Boolean = true
+    allowEditing: Boolean = true,
+    modifier: Modifier = Modifier,
 ) {
     val dateDialog = rememberMaterialDialogState()
     val timeDialog = rememberMaterialDialogState()
@@ -90,6 +92,7 @@ fun SelectTimeView(
                     ).value,
                 TextFieldDefaults.OutlinedTextFieldShape
             )
+            .then(modifier)
     ) {
         Column() {
             val buttonHorizontalPadding =

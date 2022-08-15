@@ -1,6 +1,7 @@
 package nz.ac.uclive.rog19.seng440.assignment1.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
@@ -94,12 +95,9 @@ fun EditEntryView(
     allowEditing: Boolean = true,
     modifier: Modifier = Modifier
 ) {
-    val padding = 12.dp
-    Column(modifier = modifier) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         val coroutineScope = rememberCoroutineScope()
         val focusManager = LocalFocusManager.current
-
-        Spacer(modifier = Modifier.height(padding))
 
         OutlinedTextField(
             value = entry.description,
@@ -115,16 +113,12 @@ fun EditEntryView(
             modifier = Modifier.fillMaxWidth()
         )
 
-        Spacer(modifier = Modifier.height(padding))
-
         SelectProjectDropdown(
             selectedProjectId = entry.projectId,
             projectSelected = { entry.projectId = it },
             projects = projects,
             allowEditing = allowEditing
         )
-
-        Spacer(modifier = Modifier.height(padding))
 
         SelectTagsDropdown(
             selectedTags = entry.tagNames,
@@ -135,8 +129,6 @@ fun EditEntryView(
             allowEditing = allowEditing
         )
 
-        Spacer(modifier = Modifier.height(padding))
-
         SelectTimeView(
             label = "Start Time",
             date = entry.startTime,
@@ -145,10 +137,8 @@ fun EditEntryView(
             unsetText = null,
             now = if (lastEntryStopTime != null) now.value else null,
             setDate = { entry.startTime = it },
-            allowEditing = allowEditing
+            allowEditing = allowEditing,
         )
-
-        Spacer(modifier = Modifier.height(padding))
 
         SelectTimeView(
             label = "End Time",
@@ -158,7 +148,7 @@ fun EditEntryView(
             unsetText = "Continue time entry",
             now = if (lastEntryStopTime != null) now.value else null,
             setDate = { entry.endTime = it },
-            allowEditing = allowEditing
+            allowEditing = allowEditing,
         )
     }
 }
