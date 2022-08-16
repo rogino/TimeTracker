@@ -6,18 +6,21 @@ import android.os.Handler
 import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlinx.coroutines.launch
 import nz.ac.uclive.rog19.seng440.assignment1.components.EditEntryPage
 import nz.ac.uclive.rog19.seng440.assignment1.components.EditEntryView
@@ -43,6 +46,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
+
         model = mockModel
         apiRequest = ApiRequest()
 
@@ -67,10 +73,20 @@ class MainActivity : ComponentActivity() {
             startDestination = "entries"
         }
 
-        val paddingModifier = Modifier.padding(horizontal = 16.dp).padding(top = 8.dp)
-
         setContent {
+            val systemUiController = rememberSystemUiController()
+            val useDarkIcons = MaterialTheme.colors.isLight
+            SideEffect {
+                // Update all of the system bar colors to be transparent, and use
+                // dark icons if we're in light theme
+                systemUiController.setSystemBarsColor(
+                    color = Color.Transparent,
+                    darkIcons = useDarkIcons
+                )
+            }
             val navController = rememberNavController()
+
+            val paddingModifier = Modifier.padding(horizontal = 16.dp).padding(top = 8.dp)
             TimeTrackerTheme {
                 // A surface container using the 'background' color from the theme
                 Surface(

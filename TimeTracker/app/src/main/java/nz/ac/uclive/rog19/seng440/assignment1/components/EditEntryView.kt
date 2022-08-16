@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.google.accompanist.insets.ui.TopAppBar
 import kotlinx.coroutines.launch
 import nz.ac.uclive.rog19.seng440.assignment1.ApiRequest
 import nz.ac.uclive.rog19.seng440.assignment1.model.Project
@@ -44,48 +45,52 @@ fun EditEntryPage(
     val coroutineScope = rememberCoroutineScope()
     var isSaving by remember { mutableStateOf(false) }
 
-    Scaffold(topBar = {
-        TopAppBar(
-            title = {
-                Text(
-                    text = "${if (entry.id == null) "Create" else "Edit"} Time Entry"
-                )
-            },
-            navigationIcon = {
-                IconButton(onClick = { goBack() }) {
-                    Icon(Icons.Filled.ArrowBack, "backIcon")
-                }
-            },
-            actions = {
-                TextButton(
-                    onClick = {
-                        coroutineScope.launch {
-                            val payload = entry.toTimeEntry()
-                            if (payload == null) return@launch
-                            isSaving = true
-                            val response: TimeEntry?
-                            try {
-                                if (entry.id != null) response = apiRequest.updateTimeEntry(payload)
-                                else response = apiRequest.newTimeEntry(payload)
-                            } finally {
-                                isSaving = false
-                            }
-                            response?.let { entry.copyPropertiesFromEntry(response) }
-                            goBack()
-                        }
-                    }, enabled = canSave && allowEditing && !isSaving,
-                    colors = ButtonDefaults.buttonColors(
-                        contentColor = Color.White,
-                        disabledContentColor = Color.Unspecified.copy(alpha = 0.6f),
-                        backgroundColor = Color.Transparent,
-                        disabledBackgroundColor = Color.Transparent
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "${if (entry.id == null) "Create" else "Edit"} Time Entry"
                     )
-                ) {
-                    Text(text = "Save", style = MaterialTheme.typography.body1)
-                }
-            }
-        )
-    }) {
+                },
+                navigationIcon = {
+                    IconButton(onClick = { goBack() }) {
+                        Icon(Icons.Filled.ArrowBack, "backIcon")
+                    }
+                },
+                actions = {
+                    TextButton(
+                        onClick = {
+                            coroutineScope.launch {
+                                val payload = entry.toTimeEntry()
+                                if (payload == null) return@launch
+                                isSaving = true
+                                val response: TimeEntry?
+                                try {
+                                    if (entry.id != null) response =
+                                        apiRequest.updateTimeEntry(payload)
+                                    else response = apiRequest.newTimeEntry(payload)
+                                } finally {
+                                    isSaving = false
+                                }
+                                response?.let { entry.copyPropertiesFromEntry(response) }
+                                goBack()
+                            }
+                        }, enabled = canSave && allowEditing && !isSaving,
+                        colors = ButtonDefaults.buttonColors(
+                            contentColor = Color.White,
+                            disabledContentColor = Color.Unspecified.copy(alpha = 0.6f),
+                            backgroundColor = Color.Transparent,
+                            disabledBackgroundColor = Color.Transparent
+                        )
+                    ) {
+                        Text(text = "Save", style = MaterialTheme.typography.body1)
+                    }
+                },
+                contentPadding = WindowInsets.statusBars.asPaddingValues()
+            )
+        },
+    ) {
         val howDoIGetThisErrorToGoAway = it
         EditEntryView(
             entry = entry,
