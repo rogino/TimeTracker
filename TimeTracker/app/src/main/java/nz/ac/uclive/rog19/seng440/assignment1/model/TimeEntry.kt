@@ -132,6 +132,17 @@ class TimeEntryObservable(
             workspaceId = workspaceId
         )
     }
+
+    fun copyPropertiesFromEntry(entry: TimeEntry) {
+        id = entry.id
+        description = entry.description
+        startTime = entry.startTime
+        endTime = entry.endTime
+        projectId = entry.projectId
+        tagNames.clear()
+        tagNames.addAll(entry.tagNames ?: emptyList())
+        workspaceId = entry.workspaceId
+    }
 }
 
 //data class TimeEntryDto(

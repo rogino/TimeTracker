@@ -1,7 +1,6 @@
 package nz.ac.uclive.rog19.seng440.assignment1.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
@@ -16,7 +15,10 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
+import nz.ac.uclive.rog19.seng440.assignment1.ApiRequest
 import nz.ac.uclive.rog19.seng440.assignment1.model.Project
+import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntry
 import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntryObservable
 import nz.ac.uclive.rog19.seng440.assignment1.model.mockModel
 import nz.ac.uclive.rog19.seng440.assignment1.newlineEtAlRegex
@@ -34,11 +36,13 @@ fun EditEntryPage(
     now: State<Instant> = mutableStateOf(Instant.now()),
     zoneId: ZoneId = Clock.systemDefaultZone().zone,
     allowEditing: Boolean = true,
-    saveAndExit: () -> Unit,
-    cancelAndExit: () -> Unit,
+    apiRequest: ApiRequest,
+    goBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val canSave = entry.startTime != null && entry.startTime!!.isBefore(entry.endTime ?: now.value)
+    val coroutineScope = rememberCoroutineScope()
+    var isSaving by remember { mutableStateOf(false) }
 
     Scaffold(topBar = {
         TopAppBar(
@@ -48,15 +52,28 @@ fun EditEntryPage(
                 )
             },
             navigationIcon = {
-                IconButton(onClick = { cancelAndExit() }) {
+                IconButton(onClick = { goBack() }) {
                     Icon(Icons.Filled.ArrowBack, "backIcon")
                 }
             },
             actions = {
                 TextButton(
                     onClick = {
-                        saveAndExit()
-                    }, enabled = canSave && allowEditing,
+                        coroutineScope.launch {
+                            val payload = entry.toTimeEntry()
+                            if (payload == null) return@launch
+                            isSaving = true
+                            val response: TimeEntry?
+                            try {
+                                if (entry.id != null) response = apiRequest.updateTimeEntry(payload)
+                                else response = apiRequest.newTimeEntry(payload)
+                            } finally {
+                                isSaving = false
+                            }
+                            response?.let { entry.copyPropertiesFromEntry(response) }
+                            goBack()
+                        }
+                    }, enabled = canSave && allowEditing && !isSaving,
                     colors = ButtonDefaults.buttonColors(
                         contentColor = Color.White,
                         disabledContentColor = Color.Unspecified.copy(alpha = 0.6f),
@@ -298,8 +315,8 @@ fun EditEntry_Preview() {
                 entry = mockModel.currentEntry!!.toObservable(),
                 projects = mockModel.projects,
                 allTags = mockModel.tags,
-                saveAndExit = {},
-                cancelAndExit = {}
+                apiRequest = ApiRequest(),
+                goBack = {},
             )
         }
     }

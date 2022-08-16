@@ -47,7 +47,7 @@ class MainActivity : ComponentActivity() {
         apiRequest = ApiRequest()
 
         val preferences = getSharedPreferences(timeTrackerPreferencesFileName, Context.MODE_PRIVATE)
-        var currentlyEditedEntry: TimeEntryObservable = TimeEntryObservable()
+        var currentlyEditedEntry = TimeEntryObservable()
 
         val key = preferences.getString("API_KEY", null)
         val workspaceId = preferences.getInt("DEFAULT_WORKSPACE_ID", -1)
@@ -139,10 +139,8 @@ class MainActivity : ComponentActivity() {
                                 allTags = model.tags,
                                 now = now,
                                 lastEntryStopTime = lastEntryStopTime,
-                                saveAndExit = {
-                                    navController.popBackStack()
-                                },
-                                cancelAndExit = {
+                                apiRequest = apiRequest,
+                                goBack = {
                                     navController.popBackStack()
                                 },
                                 modifier = paddingModifier
