@@ -1,21 +1,20 @@
 package nz.ac.uclive.rog19.seng440.assignment1.components
 
 import android.text.format.DateFormat
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.*
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.MutableTransitionState
-import androidx.compose.animation.fadeIn
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.modifier.modifierLocalOf
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -43,7 +42,7 @@ fun SelectTimeView(
 ) {
     val dateDialog = rememberMaterialDialogState()
     val timeDialog = rememberMaterialDialogState()
-    val isExpanded = remember { MutableTransitionState(false) }
+    var isExpanded by remember { mutableStateOf(false) }
 
     val localDateTime = ZonedDateTime.ofInstant(date ?: now ?: Instant.now(), zoneId)
     val localDate = localDateTime.toLocalDate()
@@ -63,12 +62,9 @@ fun SelectTimeView(
         contentColor = Color.Unspecified
     )
 
-    val expanded = isExpanded.targetState
-
     fun toggleExpand() {
-        isExpanded.targetState = !isExpanded.targetState
+        isExpanded = !isExpanded
     }
-
     Button(
         onClick = { toggleExpand() },
         colors = outlinedTextFieldLikeButtonColors,
@@ -92,6 +88,12 @@ fun SelectTimeView(
                     ).value,
                 TextFieldDefaults.OutlinedTextFieldShape
             )
+            .animateContentSize(
+                animationSpec = tween(
+                    durationMillis = 200,
+                    easing = LinearOutSlowInEasing
+                )
+            )
             .then(modifier)
     ) {
         Column() {
@@ -108,10 +110,10 @@ fun SelectTimeView(
                 )
                 Row() {
                     Button(
-                        onClick = { if (expanded) dateDialog.show() else toggleExpand() },
+                        onClick = { if (isExpanded) dateDialog.show() else toggleExpand() },
                         colors = outlinedTextFieldLikeButtonColors,
                         enabled = allowEditing,
-                        elevation = if (expanded) ButtonDefaults.elevation() else UnelevatedButtonElevation(),
+                        elevation = if (isExpanded) ButtonDefaults.elevation() else UnelevatedButtonElevation(),
                         modifier = Modifier.padding(end = 10.dp)
                     ) {
                         var dateText = dateFormatter.format(localDateTime)
@@ -125,10 +127,10 @@ fun SelectTimeView(
                     }
 
                     Button(
-                        onClick = { if (expanded) timeDialog.show() else toggleExpand() },
+                        onClick = { if (isExpanded) timeDialog.show() else toggleExpand() },
                         colors = outlinedTextFieldLikeButtonColors,
                         enabled = allowEditing,
-                        elevation = if (expanded) ButtonDefaults.elevation() else UnelevatedButtonElevation(),
+                        elevation = if (isExpanded) ButtonDefaults.elevation() else UnelevatedButtonElevation(),
                         contentPadding = PaddingValues(start = 0.dp, end = buttonHorizontalPadding),
                         modifier = Modifier
                             .padding(end = buttonHorizontalPadding)
@@ -148,15 +150,16 @@ fun SelectTimeView(
                 }
             }
 
-            SelectTimeViewDeltaButtons(
-                isExpanded = isExpanded,
-                date = date,
-                setDate = setDate,
-                lastStopTime = lastStopTime,
-                unsetText = unsetText,
-                buttonColors = outlinedBoringButtonColors,
-                allowEditing = allowEditing,
-            )
+            if (isExpanded) {
+                SelectTimeViewDeltaButtons(
+                    date = date,
+                    setDate = setDate,
+                    lastStopTime = lastStopTime,
+                    unsetText = unsetText,
+                    buttonColors = outlinedBoringButtonColors,
+                    allowEditing = allowEditing
+                )
+            }
         }
     }
 
@@ -192,7 +195,6 @@ fun SelectTimeView(
 
 @Composable
 fun SelectTimeViewDeltaButtons(
-    isExpanded: MutableTransitionState<Boolean>,
     date: Instant?,
     setDate: (Instant?) -> Unit,
     lastStopTime: Instant?,
@@ -200,7 +202,7 @@ fun SelectTimeViewDeltaButtons(
     buttonColors: ButtonColors = ButtonDefaults.outlinedButtonColors(),
     allowEditing: Boolean = true
 ) {
-    AnimatedVisibility(visibleState = isExpanded, enter = fadeIn()) {
+    Column() {
         Row(
             horizontalArrangement = Arrangement.Center,
             modifier = Modifier.fillMaxWidth()
@@ -228,10 +230,6 @@ fun SelectTimeViewDeltaButtons(
                 }
             }
         }
-    }
-
-    // Needs to be in separate animation scopes for some reason
-    AnimatedVisibility(visibleState = isExpanded, enter = fadeIn()) {
         Row(
             horizontalArrangement = Arrangement.Center,
             modifier = Modifier.fillMaxWidth()
