@@ -210,9 +210,9 @@ fun TimeEntryListView(
             }
 
             item {
-                Button(onClick = { editEntry?.invoke(null) }) {
-                    Text("New Time Entry")
-                }
+                Spacer(modifier = Modifier.padding(
+                    bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
+                )
             }
         }
     }
