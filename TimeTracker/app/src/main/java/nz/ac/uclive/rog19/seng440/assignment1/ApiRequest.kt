@@ -2,9 +2,7 @@ package nz.ac.uclive.rog19.seng440.assignment1
 
 import android.util.Log
 import com.beust.klaxon.Klaxon
-import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.suspendCancellableCoroutine
 import nz.ac.uclive.rog19.seng440.assignment1.model.DateTimeConverter
 import nz.ac.uclive.rog19.seng440.assignment1.model.Me
 import nz.ac.uclive.rog19.seng440.assignment1.model.Project
@@ -14,10 +12,13 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request.Builder
 import okhttp3.RequestBody.Companion.toRequestBody
-import org.json.JSONObject
 import java.io.IOException
+import java.net.UnknownHostException
 import java.time.Instant
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
+class TogglApiException(message: String) : Exception(message)
 
 class BasicAuthInterceptor(user: String, password: String) :
     Interceptor {
@@ -43,25 +44,26 @@ class ApiRequest {
     val authenticated: Boolean get() = apiKey != null
 
     var apiKey: String? = null
-    set(value) {
-        field = value
-        if (value != null) {
-            client = buildClientWithAuthenticator(value)
-        } else {
-            client = null
+        set(value) {
+            field = value
+            client = if (value == null) null else {
+                buildClientWithAuthenticator(value)
+            }
         }
-    }
 
-    var workspaceId: Int? = null
+    val workspaceId: Int? get() = currentWorkspaceId ?: defaultWorkspaceId
+    var currentWorkspaceId: Int? = null
+    var defaultWorkspaceId: Int? = null
 
     var client: OkHttpClient? = null
+
     init {
 //        apiKey = API_KEY
 //        workspaceId = WORKSPACE_ID
     }
 
 
-    fun buildClientWithAuthenticator(apiKey: String): OkHttpClient {
+    private fun buildClientWithAuthenticator(apiKey: String): OkHttpClient {
         return OkHttpClient.Builder()
             .addInterceptor(BasicAuthInterceptor(apiKey, "api_token"))
             .build()
@@ -74,9 +76,9 @@ class ApiRequest {
             .host(domain.removePrefix("https://"))
             .addPathSegments(rootPath)
 
-    val jsonConverter = Klaxon().converter(DateTimeConverter)
+    private val jsonConverter = Klaxon().converter(DateTimeConverter)
 
-    val jsonType = "application/json; charset=utf-8".toMediaType()
+    private val jsonType = "application/json; charset=utf-8".toMediaType()
 
     suspend fun getTags(): List<Project>? {
         get("${domain}/${rootPath}/workspaces/${workspaceId}/projects", client!!)?.let {
@@ -140,6 +142,7 @@ class ApiRequest {
         get(url, client)?.let { body ->
             return jsonConverter.parse<Me>(body)?.also {
                 apiKey = it.apiToken
+                defaultWorkspaceId = it.defaultWorkspaceId
             }
         }
 
@@ -180,38 +183,13 @@ class ApiRequest {
     }
 
     /// Make HTTP GET request with Toggl credentials and return response body as string
-    private suspend fun get(url: HttpUrl, client: OkHttpClient): String? {
-        val result = withContext(Dispatchers.IO) {
-            val request: Request = Builder()
-                .url(url)
-                .build()
+    private suspend fun get(url: HttpUrl, client: OkHttpClient): String {
+        val request: Request = Builder()
+            .url(url)
+            .build()
 
-            var response: Response? = null
-            try {
-                response = client.newCall(request).execute()
-                when (response.code) {
-                    200 -> {
-                        response.body!!.string()
-                    }
-                    429 -> {
-                        Log.d(TAG, "RATE LIMITING")
-                        null
-                    }
-                    else -> {
-                        Log.e(TAG, "ERROR ${response.code} MAKING REQUEST TO ${url.toString()}")
-                        Log.e(TAG, response.headers.toString())
-                        Log.e(TAG, response.body!!.string())
-                        null
-                    }
-                }
-            } catch (error: Error) {
-                error.printStackTrace()
-                null
-            } finally {
-                response?.close()
-            }
-        }
-        return result
+        Log.d(TAG, "GET request to ${request.url}")
+        return handleCall(client!!.newCall(request))
     }
 
     private suspend fun post(url: String, body: RequestBody, put: Boolean = false): String? {
@@ -220,38 +198,68 @@ class ApiRequest {
 
     /// Make HTTP POST request with Toggl credentials, the body being some JSON,
     // and return response body as string
-    private suspend fun post(url: HttpUrl, body: RequestBody, put: Boolean = false): String? {
-        val result = withContext(Dispatchers.IO) {
-            var builder = Builder().url(url)
-            builder = if (put) builder.put(body) else builder.post(body)
-            val request: Request = builder.build()
+    private suspend fun post(url: HttpUrl, body: RequestBody, put: Boolean = false): String {
+        var builder = Builder().url(url)
+        builder = if (put) builder.put(body) else builder.post(body)
+        val request: Request = builder.build()
 
-            Log.d(TAG, request.method)
-            var response: Response? = null
-            try {
-                response = client!!.newCall(request).execute()
-                when (response.code) {
-                    200 -> {
-                        response.body!!.string()
+        Log.d(TAG, "POST request to ${request.url}")
+        return handleCall(client!!.newCall(request))
+    }
+
+    private suspend fun handleCall(call: Call): String {
+        return suspendCancellableCoroutine { continuation ->
+            call.enqueue(object : Callback {
+                override fun onFailure(call: Call, e: IOException) {
+                    if (e is UnknownHostException) {
+                        return continuation.resumeWithException(
+                            TogglApiException(
+                                "Could not connect to server. Check your internet connection and try again"
+                            )
+                        )
                     }
-                    429 -> {
-                        Log.d(TAG, "RATE LIMITING")
-                        null
-                    }
-                    else -> {
-                        Log.e(TAG, "ERROR ${response.code} MAKING REQUEST TO ${url.toString()}")
-                        Log.e(TAG, response.headers!!.toString())
-                        Log.e(TAG, response.body!!.string())
-                        null
-                    }
+                    Log.e(TAG, "ERROR MAKING API REQUEST")
+                    Log.e(TAG, e.stackTraceToString())
+                    return continuation.resumeWithException(e)
                 }
-            } catch (error: Error) {
-                error.printStackTrace()
-                null
-            } finally {
-                response?.close()
-            }
+
+                override fun onResponse(call: Call, response: Response) {
+                    if (response.isSuccessful) {
+                        if (response.body == null) {
+                            response.close()
+                            return continuation.resumeWithException(TogglApiException("No body received"))
+                        }
+                        val body = response.body!!.string()
+                        response.close()
+                        return continuation.resume(body)
+                    }
+                    Log.e(TAG, "ERROR ${response.code} FROM API SERVER")
+                    Log.e(TAG, response.headers!!.toString())
+                    Log.e(TAG, response.body!!.string())
+
+                    val exception = when (response.code) {
+                        429 -> {
+                            TogglApiException("Toggl API rate limiting in place - please try again later")
+                        }
+                        403 -> {
+                            var message = "Invalid credentials"
+                            val attemptsRemaining = response.headers["x-remaining-login-attempts"]
+                            attemptsRemaining?.let {
+                                message += ". $attemptsRemaining login attempts remaining"
+                            }
+                            TogglApiException(message)
+                        }
+                        401 -> {
+                            TogglApiException("Not authorized")
+                        }
+                        else -> {
+                            TogglApiException("Error code ${response.code} received")
+                        }
+                    }
+                    response.close()
+                    return continuation.resumeWithException(exception)
+                }
+            })
         }
-        return result
     }
 }

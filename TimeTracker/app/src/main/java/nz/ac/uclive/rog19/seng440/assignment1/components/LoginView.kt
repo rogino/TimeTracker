@@ -16,10 +16,12 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import nz.ac.uclive.rog19.seng440.assignment1.ApiRequest
 import nz.ac.uclive.rog19.seng440.assignment1.model.Me
 import nz.ac.uclive.rog19.seng440.assignment1.newlineEtAlRegex
@@ -74,18 +76,21 @@ fun LoginView(
 
         Button(
             onClick = {
-                coroutineScope.launch(CoroutineExceptionHandler { _, exception ->
-                    errorMessage = exception.message ?: exception.toString()
-                    requestInProgress = false
-                }) {
-                    requestInProgress = true
-                    val result = apiRequest.authenticate(
-                        email = email.text.trim(),
-                        password = password.text
-                    )
-                    requestInProgress = false
-                    result?.let {
-                        onLogin?.invoke(result)
+                coroutineScope.launch {
+                    withContext(Dispatchers.IO) {
+                        requestInProgress = true
+                        try {
+                            apiRequest.authenticate(
+                                email = email.text.trim(),
+                                password = password.text
+                            )?.let {
+                                onLogin?.invoke(it)
+                            } ?: run { errorMessage = "JSON could not be parsed" }
+                        } catch (exception: Throwable) {
+                            errorMessage = exception.message ?: exception.toString()
+                        } finally {
+                            requestInProgress = false
+                        }
                     }
                 }
             },
@@ -102,7 +107,7 @@ fun LoginView(
         }
 
         if (errorMessage.isNotEmpty()) {
-            Text(text = errorMessage)
+            Text(text = errorMessage, textAlign = TextAlign.Center)
         }
 
         OutlinedButton(onClick = {

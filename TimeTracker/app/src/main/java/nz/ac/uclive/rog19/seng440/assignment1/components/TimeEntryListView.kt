@@ -1,6 +1,6 @@
 package nz.ac.uclive.rog19.seng440.assignment1
 
-import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,15 +13,16 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.accompanist.insets.ui.TopAppBar
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
-import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import nz.ac.uclive.rog19.seng440.assignment1.model.Project
 import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntry
 import nz.ac.uclive.rog19.seng440.assignment1.model.mockModel
@@ -146,28 +147,35 @@ fun TimeEntryListView(
 ) {
     var isRefreshing by remember { mutableStateOf<Boolean>(false) }
     var coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     SwipeRefresh(
         state = rememberSwipeRefreshState(isRefreshing = isRefreshing),
         onRefresh = {
-            coroutineScope.launch(CoroutineExceptionHandler { _, exception ->
-                Log.d(TAG, exception.message ?: exception.toString())
-//                Toast.makeText(currentCompositionLocalContext,
-//                        exception.message ?: exception.toString(),
-//                    Toast.LENGTH_SHORT)
-//                )
-                isRefreshing = false
-            }) {
-                isRefreshing = true
-                val entries = apiRequest?.getTimeEntries(
-                    startDate = Instant.now().minusSeconds(60 * 60 * 24 * 7),
-                    endDate = Instant.now().plusSeconds(60 * 60 * 24)
-                )
-                val projects = apiRequest?.getProjects()
-                if (entries != null && projects != null) {
-                    setData?.invoke(entries, projects)
+            coroutineScope.launch {
+                // Seems weird to need both coroutineScope.launch and withContext, but this seems to
+                // prevent the main thread from being blocked
+                withContext(Dispatchers.IO) {
+                    isRefreshing = true
+                    try {
+                        val entries = apiRequest?.getTimeEntries(
+                            startDate = Instant.now().minusSeconds(60 * 60 * 24 * 7),
+                            endDate = Instant.now().plusSeconds(60 * 60 * 24)
+                        )
+                        val projects = apiRequest?.getProjects()
+                        if (entries != null && projects != null) {
+                            setData?.invoke(entries, projects)
+                        }
+                    } catch (exception: Throwable) {
+                        Toast.makeText(
+                            context,
+                            exception.message ?: exception.toString(),
+                            Toast.LENGTH_SHORT
+                        )
+                    } finally {
+                        isRefreshing = false
+                    }
                 }
-                isRefreshing = false
             }
         }) {
         LazyColumn(modifier = modifier) {
@@ -210,8 +218,11 @@ fun TimeEntryListView(
             }
 
             item {
-                Spacer(modifier = Modifier.padding(
-                    bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
+                Spacer(
+                    modifier = Modifier.padding(
+                        bottom = WindowInsets.navigationBars.asPaddingValues()
+                            .calculateBottomPadding()
+                    )
                 )
             }
         }
