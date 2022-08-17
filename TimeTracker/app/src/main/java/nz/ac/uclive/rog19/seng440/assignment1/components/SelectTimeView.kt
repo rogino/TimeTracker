@@ -1,9 +1,8 @@
 package nz.ac.uclive.rog19.seng440.assignment1.components
 
 import android.text.format.DateFormat
-import androidx.compose.animation.*
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearOutSlowInEasing
-import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -13,7 +12,6 @@ import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.LayoutDirection
@@ -56,10 +54,10 @@ fun SelectTimeView(
 
     val outlinedTextFieldLikeButtonColors: ButtonColors = ButtonDefaults.buttonColors(
         backgroundColor = MaterialTheme.colors.background,
-        contentColor = Color.Unspecified
+        contentColor = LocalContentColor.current.copy(LocalContentAlpha.current)
     )
     val outlinedBoringButtonColors: ButtonColors = ButtonDefaults.outlinedButtonColors(
-        contentColor = Color.Unspecified
+        contentColor = LocalContentColor.current.copy(LocalContentAlpha.current)
     )
 
     fun toggleExpand() {
@@ -135,6 +133,7 @@ fun SelectTimeView(
                         modifier = Modifier
                             .padding(end = buttonHorizontalPadding)
                             .width(120.dp),
+                        // Wide enough to fit in widest date (with seconds)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -161,34 +160,32 @@ fun SelectTimeView(
                 )
             }
         }
-    }
-
-
-    MaterialDialog(
-        dialogState = dateDialog,
-        buttons = {
-            positiveButton("Ok")
-            negativeButton("Cancel")
+        MaterialDialog(
+            dialogState = dateDialog,
+            buttons = {
+                positiveButton("Ok")
+                negativeButton("Cancel")
+            }
+        ) {
+            datepicker(initialDate = localDate) { date ->
+                val localDateTime = LocalDateTime.of(date, localTime)
+                val instant = localDateTime.toInstant(zoneId.rules.getOffset(localDateTime))
+                setDate(instant)
+            }
         }
-    ) {
-        datepicker(initialDate = localDate) { date ->
-            val localDateTime = LocalDateTime.of(date, localTime)
-            val instant = localDateTime.toInstant(zoneId.rules.getOffset(localDateTime))
-            setDate(instant)
-        }
-    }
 
-    MaterialDialog(
-        dialogState = timeDialog,
-        buttons = {
-            positiveButton("Ok")
-            negativeButton("Cancel")
-        }
-    ) {
-        timepicker(initialTime = localTime) { time ->
-            val localDateTime = LocalDateTime.of(localDate, time)
-            val instant = localDateTime.toInstant(zoneId.rules.getOffset(localDateTime))
-            setDate(instant)
+        MaterialDialog(
+            dialogState = timeDialog,
+            buttons = {
+                positiveButton("Ok")
+                negativeButton("Cancel")
+            }
+        ) {
+            timepicker(initialTime = localTime) { time ->
+                val localDateTime = LocalDateTime.of(localDate, time)
+                val instant = localDateTime.toInstant(zoneId.rules.getOffset(localDateTime))
+                setDate(instant)
+            }
         }
     }
 }

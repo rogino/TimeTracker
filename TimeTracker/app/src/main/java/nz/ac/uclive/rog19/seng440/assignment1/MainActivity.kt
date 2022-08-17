@@ -168,6 +168,10 @@ class MainActivity : ComponentActivity() {
                             } else if (current.id == mostRecent?.id && model.timeEntries.count() >= 2) {
                                 lastEntryStopTime = model.timeEntries[1].endTime
                             }
+                            if (lastEntryStopTime?.isBefore(Instant.now().minusSeconds(60 * 60 * 24)) == true) {
+                                // Max age of 1 day
+                                lastEntryStopTime = null
+                            }
 
                             EditEntryPage(
                                 projects = model.projects,
