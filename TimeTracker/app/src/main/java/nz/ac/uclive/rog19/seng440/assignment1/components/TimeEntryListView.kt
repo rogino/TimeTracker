@@ -1,5 +1,6 @@
 package nz.ac.uclive.rog19.seng440.assignment1
 
+import android.content.Context
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -143,6 +144,29 @@ fun TimeEntryListPage(
     }
 }
 
+suspend fun <T> makeRequestShowingToastOnError(context: Context, onEnd: (() -> Unit)?, apiCall: (suspend () -> T)): T? {
+    val result = withContext(Dispatchers.IO) {
+        try {
+            Result.success(apiCall())
+        } catch (exception: Throwable) {
+            Result.failure(exception)
+        } finally {
+            onEnd?.invoke()
+        }
+    }
+    .onFailure {
+        withContext(Dispatchers.Main) {
+            Toast.makeText(
+                context,
+                it.message ?: it.toString(),
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
+    return result.getOrNull()
+}
+
 @Composable
 fun TimeEntryListView(
     modifier: Modifier = Modifier,
@@ -163,32 +187,15 @@ fun TimeEntryListView(
         state = rememberSwipeRefreshState(isRefreshing = isRefreshing),
         onRefresh = {
             coroutineScope.launch {
-                // Seems weird to need both coroutineScope.launch and withContext, but this seems to
-                // prevent the main thread from being blocked
-                withContext(Dispatchers.IO) {
-                    isRefreshing = true
-                    try {
-                        val entries = apiRequest?.getTimeEntries(
-                            startDate = Instant.now().minusSeconds(60 * 60 * 24 * 7),
-                            endDate = Instant.now().plusSeconds(60 * 60 * 24)
-                        )
-                        val projects = apiRequest?.getProjects()
-                        if (entries != null && projects != null) {
-                            setData?.invoke(entries, projects)
-                        }
-                        null
-                    } catch (exception: Throwable) {
-                        exception
-                    } finally {
-                        isRefreshing = false
-                    }
-                }?.let {
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(
-                            context,
-                            it.message ?: it.toString(),
-                            Toast.LENGTH_LONG
-                        ).show()
+                isRefreshing = true
+                makeRequestShowingToastOnError(context, { isRefreshing = false }) {
+                    val entries = apiRequest?.getTimeEntries(
+                        startDate = Instant.now().minusSeconds(60 * 60 * 24 * 7),
+                        endDate = Instant.now().plusSeconds(60 * 60 * 24)
+                    )
+                    val projects = apiRequest?.getProjects()
+                    if (entries != null && projects != null) {
+                        setData?.invoke(entries, projects)
                     }
                 }
             }
@@ -237,7 +244,6 @@ fun TimeEntryListView(
                         )
                         TimeEntryListItemDropdownMenu(
                             entry = entry,
-                            now = now,
                             lastEntryStopTime = lastEntryStopTime,
                             expanded = dropdownOpen,
                             dismiss = { dropdownOpen = false },
@@ -262,7 +268,6 @@ fun TimeEntryListView(
 @Composable
 fun TimeEntryListItemDropdownMenu(
     entry: TimeEntry,
-    now: State<Instant> = remember { mutableStateOf(Instant.now()) },
     lastEntryStopTime: Instant?,
     expanded: Boolean,
     dismiss: () -> Unit,
@@ -277,7 +282,7 @@ fun TimeEntryListItemDropdownMenu(
     }
 
     DropdownMenu(expanded = expanded, onDismissRequest = dismiss) {
-        DropdownMenuItem(onClick = { editWithStartTime(startTime = now.value) }) {
+        DropdownMenuItem(onClick = { editWithStartTime(startTime = Instant.now()) }) {
             Text("Start")
         }
         lastEntryStopTime?.let {
