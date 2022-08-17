@@ -166,16 +166,22 @@ fun TimeEntryListView(
                         if (entries != null && projects != null) {
                             setData?.invoke(entries, projects)
                         }
+                        null
                     } catch (exception: Throwable) {
-                        Toast.makeText(
-                            context,
-                            exception.message ?: exception.toString(),
-                            Toast.LENGTH_SHORT
-                        )
+                        exception
+                        // Can't toast on a thread that has not called Looper.prepare()
                     } finally {
                         isRefreshing = false
                     }
-                }
+                }?.let {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(
+                            context,
+                            it.message ?: it.toString(),
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                 }
             }
         }) {
         LazyColumn(modifier = modifier) {
