@@ -94,6 +94,19 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colors.background
                 ) {
+                    val mostRecent = if (model.timeEntries.isEmpty()) null else model.timeEntries.first()
+                    var lastEntryStopTime: Instant? = null
+
+                    if (currentlyEditedEntry?.id == null && mostRecent != null) {
+                        lastEntryStopTime = mostRecent.endTime
+                    } else if (currentlyEditedEntry.id == mostRecent?.id && model.timeEntries.count() >= 2) {
+                        lastEntryStopTime = model.timeEntries[1].endTime
+                    }
+                    if (lastEntryStopTime?.isBefore(Instant.now().minusSeconds(60 * 60 * 24)) == true) {
+                        // Max age of 1 day
+                        lastEntryStopTime = null
+                    }
+
                     NavHost(navController, startDestination = startDestination) {
                         composable("login") {
                             LoginView(
@@ -122,6 +135,7 @@ class MainActivity : ComponentActivity() {
                                 entries = model.timeEntries,
                                 projects = model.projects,
                                 now = now,
+                                lastEntryStopTime = lastEntryStopTime,
                                 apiRequest = apiRequest,
                                 setData = { entries, projects ->
                                     model.timeEntries.clear()
@@ -159,23 +173,9 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable("edit_entry") {
-                            val mostRecent = model.timeEntries.first()
-                            val current = currentlyEditedEntry
-                            var lastEntryStopTime: Instant? = null
-
-                            if (current.id == null && mostRecent != null) {
-                                lastEntryStopTime = mostRecent.endTime
-                            } else if (current.id == mostRecent?.id && model.timeEntries.count() >= 2) {
-                                lastEntryStopTime = model.timeEntries[1].endTime
-                            }
-                            if (lastEntryStopTime?.isBefore(Instant.now().minusSeconds(60 * 60 * 24)) == true) {
-                                // Max age of 1 day
-                                lastEntryStopTime = null
-                            }
-
                             EditEntryPage(
                                 projects = model.projects,
-                                entry = current,
+                                entry = currentlyEditedEntry,
                                 allTags = model.tags,
                                 now = now,
                                 lastEntryStopTime = lastEntryStopTime,

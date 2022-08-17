@@ -2,10 +2,10 @@ package nz.ac.uclive.rog19.seng440.assignment1
 
 import android.util.Log
 import android.widget.Toast
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MoreVert
@@ -14,6 +14,7 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -106,6 +107,7 @@ fun TimeEntryListPage(
     modifier: Modifier = Modifier,
     entries: SnapshotStateList<TimeEntry>,
     projects: SnapshotStateMap<Long, Project>,
+    lastEntryStopTime: Instant? = null,
     zoneId: ZoneId = Clock.systemDefaultZone().zone,
     now: State<Instant> = mutableStateOf(Instant.now()),
     apiRequest: ApiRequest? = null,
@@ -131,6 +133,7 @@ fun TimeEntryListPage(
             modifier = modifier,
             entries = entries,
             projects = projects,
+            lastEntryStopTime = lastEntryStopTime,
             zoneId = zoneId,
             now = now,
             apiRequest = apiRequest,
@@ -145,6 +148,7 @@ fun TimeEntryListView(
     modifier: Modifier = Modifier,
     entries: SnapshotStateList<TimeEntry>,
     projects: SnapshotStateMap<Long, Project>,
+    lastEntryStopTime: Instant? = null,
     zoneId: ZoneId = Clock.systemDefaultZone().zone,
     now: State<Instant> = mutableStateOf(Instant.now()),
     apiRequest: ApiRequest? = null,
@@ -175,7 +179,6 @@ fun TimeEntryListView(
                         null
                     } catch (exception: Throwable) {
                         exception
-                        // Can't toast on a thread that has not called Looper.prepare()
                     } finally {
                         isRefreshing = false
                     }
@@ -215,18 +218,32 @@ fun TimeEntryListView(
                     }
                 }
 
-                itemsIndexed(group.entries) { index, entry ->
+                // should only ever be one entry without an ID
+                items(items = group.entries, key = { it.id ?: -1000 }) { entry ->
                     Divider()
-                    // Passing null for `now` means only ongoing view gets re-rendered when date changes
-                    TimeEntryListItem(
-                        timeEntry = entry,
-                        projects = projects,
-                        zoneId = zoneId,
-                        now = now,
-                        modifier = Modifier.clickable {
-                            editEntry?.invoke(entry)
-                        }
-                    )
+                    Box {
+                        var dropdownOpen by remember(entry.id ?: -1000) { mutableStateOf(false) }
+                        TimeEntryListItem(
+                            timeEntry = entry,
+                            projects = projects,
+                            zoneId = zoneId,
+                            now = now,
+                            modifier = Modifier.pointerInput(Unit) {
+                                detectTapGestures(
+                                    onTap = { editEntry?.invoke(entry) },
+                                    onLongPress = { dropdownOpen = true }
+                                )
+                            }
+                        )
+                        TimeEntryListItemDropdownMenu(
+                            entry = entry,
+                            now = now,
+                            lastEntryStopTime = lastEntryStopTime,
+                            expanded = dropdownOpen,
+                            dismiss = { dropdownOpen = false },
+                            editEntry = editEntry
+                        )
+                    }
                 }
             }
 
@@ -237,6 +254,40 @@ fun TimeEntryListView(
                             .calculateBottomPadding()
                     )
                 )
+            }
+        }
+    }
+}
+
+@Composable
+fun TimeEntryListItemDropdownMenu(
+    entry: TimeEntry,
+    now: State<Instant> = remember { mutableStateOf(Instant.now()) },
+    lastEntryStopTime: Instant?,
+    expanded: Boolean,
+    dismiss: () -> Unit,
+    editEntry: ((TimeEntry?) -> Unit)?
+) {
+    fun editWithStartTime(startTime: Instant) {
+        var copy = entry.copy()
+        copy.id = null
+        copy.startTime = startTime
+        copy.endTime = null
+        editEntry?.invoke(copy)
+    }
+
+    DropdownMenu(expanded = expanded, onDismissRequest = dismiss) {
+        DropdownMenuItem(onClick = { editWithStartTime(startTime = now.value) }) {
+            Text("Start")
+        }
+        lastEntryStopTime?.let {
+            DropdownMenuItem(onClick = { editWithStartTime(startTime = it) }) {
+                Text("Start at last stop time")
+            }
+        }
+        if (entry.isOngoing) {
+            DropdownMenuItem(onClick = { Log.d(TAG, "TODO") }) {
+                Text("Stop entry")
             }
         }
     }
