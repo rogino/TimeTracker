@@ -28,6 +28,7 @@ fun TimeEntryListItem(
     timeEntry: TimeEntry,
     projects: Map<Long, Project>,
     zoneId: ZoneId = Clock.systemDefaultZone().zone,
+    // only read if end time is null
     now: State<Instant> = mutableStateOf(Instant.now())
 ) {
     val project = projects[timeEntry.projectId]

@@ -61,12 +61,14 @@ data class TimeEntry(
 
     @Json(ignored = true)
     val duration: Duration?
-        get() {
-            return Duration.between(
-                startTime,
-                if (endTime == null) Calendar.getInstance().toInstant() else endTime
-            )
-        }
+        get() = endTime?.let { Duration.between(startTime, it) }
+
+    fun duration(now: Instant): Duration {
+        return Duration.between(
+            startTime,
+            if (endTime == null) now else endTime
+        )
+    }
 
     @Json(ignored = true)
     val isOngoing

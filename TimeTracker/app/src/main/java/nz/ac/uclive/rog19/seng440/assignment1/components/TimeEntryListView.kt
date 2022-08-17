@@ -1,5 +1,6 @@
 package nz.ac.uclive.rog19.seng440.assignment1
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -39,6 +40,11 @@ class TimeEntryPeriod(
         get() {
             return entries.fold(Duration.ZERO) { total, entry: TimeEntry -> total + entry.duration }
         }
+
+    fun totalDuration(now: Instant): Duration {
+        return entries.fold(Duration.ZERO) { total, entry: TimeEntry -> total + entry.duration(now) }
+    }
+
 }
 
 fun groupEntries(entries: List<TimeEntry>, zoneId: ZoneId, now: Instant): List<TimeEntryPeriod> {
@@ -181,12 +187,12 @@ fun TimeEntryListView(
                             Toast.LENGTH_LONG
                         ).show()
                     }
-                 }
+                }
             }
         }) {
         LazyColumn(modifier = modifier) {
             // TODO somehow cache, or send in LocalDate as a state object: don't read now.value
-            // in order to prevent unnecessary redraws
+            // (and don't use Instant.now()) in order to prevent unnecessary redraws
             groupEntries(entries, zoneId, Instant.now()).forEachIndexed { i, group ->
                 item {
                     Row(
@@ -201,8 +207,9 @@ fun TimeEntryListView(
                             fontSize = 24.sp,
                             modifier = Modifier.alignByBaseline()
                         )
-                        Text(
-                            text = "Total ${durationFormatter(group.totalDuration)}",
+                        GroupDurationText(
+                            group = group,
+                            now = now,
                             modifier = Modifier.alignByBaseline()
                         )
                     }
@@ -233,6 +240,23 @@ fun TimeEntryListView(
             }
         }
     }
+}
+
+@Composable
+fun GroupDurationText(
+    group: TimeEntryPeriod,
+    now: State<Instant> = mutableStateOf(Instant.now()),
+    modifier: Modifier = Modifier
+) {
+    val (totalDuration, numComponents) = if (group.entries.first().isOngoing) {
+        Pair(group.totalDuration(now.value), 10)
+    } else {
+        Pair(group.totalDuration, 2)
+    }
+    Text(
+        text = "Total ${durationFormatter(totalDuration, numComponents = numComponents)}",
+        modifier = modifier
+    )
 }
 
 
