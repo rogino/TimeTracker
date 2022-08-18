@@ -198,3 +198,13 @@ val DateTimeConverter = object : Converter {
         return null
     }
 }
+
+
+data class TogglTag(val at: String,
+                    @Json(name = "deleted_at")
+                    val deletedAt: String? = null,
+                    val id: Long,
+                    val name: String,
+                    @Json(name = "workspace_id")
+                    val workspaceId: Int
+) {}

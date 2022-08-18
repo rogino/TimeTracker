@@ -24,8 +24,10 @@ import com.google.accompanist.insets.ui.TopAppBar
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import nz.ac.uclive.rog19.seng440.assignment1.model.GodModel
 import nz.ac.uclive.rog19.seng440.assignment1.model.Project
 import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntry
 import nz.ac.uclive.rog19.seng440.assignment1.model.mockModel
@@ -106,13 +108,11 @@ fun OverflowMenu(content: @Composable () -> Unit) {
 @Composable
 fun TimeEntryListPage(
     modifier: Modifier = Modifier,
-    entries: SnapshotStateList<TimeEntry>,
-    projects: SnapshotStateMap<Long, Project>,
+    model: GodModel,
     lastEntryStopTime: Instant? = null,
     zoneId: ZoneId = Clock.systemDefaultZone().zone,
     now: State<Instant> = mutableStateOf(Instant.now()),
     apiRequest: ApiRequest? = null,
-    setData: ((List<TimeEntry>, List<Project>) -> Unit)? = null,
     logout: (() -> Unit)? = null,
     editEntry: ((TimeEntry?) -> Unit)? = null
 ) {
@@ -130,21 +130,55 @@ fun TimeEntryListPage(
         )
     }) {
         val howDoIGetThisErrorToGoAway = it
-        TimeEntryListView(
-            modifier = modifier,
-            entries = entries,
-            projects = projects,
-            lastEntryStopTime = lastEntryStopTime,
-            zoneId = zoneId,
-            now = now,
-            apiRequest = apiRequest,
-            setData = setData,
-            editEntry = editEntry
-        )
+
+        var isRefreshing by remember { mutableStateOf<Boolean>(false) }
+        var coroutineScope = rememberCoroutineScope()
+        val context = LocalContext.current
+
+        SwipeRefresh(
+            state = rememberSwipeRefreshState(isRefreshing = isRefreshing),
+            onRefresh = {
+                coroutineScope.launch {
+                    isRefreshing = true
+                    makeRequestShowingToastOnError(context, { isRefreshing = false }) {
+                        async {
+                            apiRequest?.getTimeEntries(
+                                startDate = Instant.now().minusSeconds(60 * 60 * 24 * 7),
+                                endDate = Instant.now().plusSeconds(60 * 60 * 24)
+                            )?.let { model.addEntries(it) }
+                        }
+                        async {
+                            apiRequest?.getProjects()?.let {
+                                model.setProjects(it)
+                            }
+                        }
+                        async {
+                            apiRequest?.getTags()?.let {
+                                model.tags.clear()
+                                model.tags.addAll(it)
+                            }
+                        }
+                    }
+                }
+            }) {
+            TimeEntryListView(
+                modifier = modifier,
+                entries = model.timeEntries,
+                projects = model.projects,
+                lastEntryStopTime = lastEntryStopTime,
+                zoneId = zoneId,
+                now = now,
+                editEntry = editEntry
+            )
+        }
     }
 }
 
-suspend fun <T> makeRequestShowingToastOnError(context: Context, onEnd: (() -> Unit)?, apiCall: (suspend () -> T)): T? {
+suspend fun <T> makeRequestShowingToastOnError(
+    context: Context,
+    onEnd: (() -> Unit)?,
+    apiCall: (suspend () -> T)
+): T? {
     val result = withContext(Dispatchers.IO) {
         try {
             Result.success(apiCall())
@@ -154,15 +188,15 @@ suspend fun <T> makeRequestShowingToastOnError(context: Context, onEnd: (() -> U
             onEnd?.invoke()
         }
     }
-    .onFailure {
-        withContext(Dispatchers.Main) {
-            Toast.makeText(
-                context,
-                it.message ?: it.toString(),
-                Toast.LENGTH_LONG
-            ).show()
+        .onFailure {
+            withContext(Dispatchers.Main) {
+                Toast.makeText(
+                    context,
+                    it.message ?: it.toString(),
+                    Toast.LENGTH_LONG
+                ).show()
+            }
         }
-    }
 
     return result.getOrNull()
 }
@@ -175,92 +209,68 @@ fun TimeEntryListView(
     lastEntryStopTime: Instant? = null,
     zoneId: ZoneId = Clock.systemDefaultZone().zone,
     now: State<Instant> = mutableStateOf(Instant.now()),
-    apiRequest: ApiRequest? = null,
-    setData: ((List<TimeEntry>, List<Project>) -> Unit)? = null,
     editEntry: ((TimeEntry?) -> Unit)? = null
 ) {
-    var isRefreshing by remember { mutableStateOf<Boolean>(false) }
-    var coroutineScope = rememberCoroutineScope()
-    val context = LocalContext.current
-
-    SwipeRefresh(
-        state = rememberSwipeRefreshState(isRefreshing = isRefreshing),
-        onRefresh = {
-            coroutineScope.launch {
-                isRefreshing = true
-                makeRequestShowingToastOnError(context, { isRefreshing = false }) {
-                    val entries = apiRequest?.getTimeEntries(
-                        startDate = Instant.now().minusSeconds(60 * 60 * 24 * 7),
-                        endDate = Instant.now().plusSeconds(60 * 60 * 24)
-                    )
-                    val projects = apiRequest?.getProjects()
-                    if (entries != null && projects != null) {
-                        setData?.invoke(entries, projects)
-                    }
-                }
-            }
-        }) {
-        LazyColumn(modifier = modifier) {
-            // TODO somehow cache, or send in LocalDate as a state object: don't read now.value
-            // (and don't use Instant.now()) in order to prevent unnecessary redraws
-            groupEntries(entries, zoneId, Instant.now()).forEachIndexed { i, group ->
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = if (i == 0) 0.dp else 14.dp, bottom = 6.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Bottom
-                    ) {
-                        Text(
-                            text = group.name,
-                            fontSize = 24.sp,
-                            modifier = Modifier.alignByBaseline()
-                        )
-                        GroupDurationText(
-                            group = group,
-                            now = now,
-                            modifier = Modifier.alignByBaseline()
-                        )
-                    }
-                }
-
-                // should only ever be one entry without an ID
-                items(items = group.entries, key = { it.id ?: -1000 }) { entry ->
-                    Divider()
-                    Box {
-                        var dropdownOpen by remember(entry.id ?: -1000) { mutableStateOf(false) }
-                        TimeEntryListItem(
-                            timeEntry = entry,
-                            projects = projects,
-                            zoneId = zoneId,
-                            now = now,
-                            modifier = Modifier.pointerInput(Unit) {
-                                detectTapGestures(
-                                    onTap = { editEntry?.invoke(entry) },
-                                    onLongPress = { dropdownOpen = true }
-                                )
-                            }
-                        )
-                        TimeEntryListItemDropdownMenu(
-                            entry = entry,
-                            lastEntryStopTime = lastEntryStopTime,
-                            expanded = dropdownOpen,
-                            dismiss = { dropdownOpen = false },
-                            editEntry = editEntry
-                        )
-                    }
-                }
-            }
-
+    LazyColumn(modifier = modifier) {
+        // TODO somehow cache, or send in LocalDate as a state object: don't read now.value
+        // (and don't use Instant.now()) in order to prevent unnecessary redraws
+        groupEntries(entries, zoneId, Instant.now()).forEachIndexed { i, group ->
             item {
-                Spacer(
-                    modifier = Modifier.padding(
-                        bottom = WindowInsets.navigationBars.asPaddingValues()
-                            .calculateBottomPadding()
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = if (i == 0) 0.dp else 14.dp, bottom = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    Text(
+                        text = group.name,
+                        fontSize = 24.sp,
+                        modifier = Modifier.alignByBaseline()
                     )
-                )
+                    GroupDurationText(
+                        group = group,
+                        now = now,
+                        modifier = Modifier.alignByBaseline()
+                    )
+                }
             }
+
+            // should only ever be one entry without an ID
+            items(items = group.entries, key = { it.id ?: -1000 }) { entry ->
+                Divider()
+                Box {
+                    var dropdownOpen by remember(entry.id ?: -1000) { mutableStateOf(false) }
+                    TimeEntryListItem(
+                        timeEntry = entry,
+                        projects = projects,
+                        zoneId = zoneId,
+                        now = now,
+                        modifier = Modifier.pointerInput(Unit) {
+                            detectTapGestures(
+                                onTap = { editEntry?.invoke(entry) },
+                                onLongPress = { dropdownOpen = true }
+                            )
+                        }
+                    )
+                    TimeEntryListItemDropdownMenu(
+                        entry = entry,
+                        lastEntryStopTime = lastEntryStopTime,
+                        expanded = dropdownOpen,
+                        dismiss = { dropdownOpen = false },
+                        editEntry = editEntry
+                    )
+                }
+            }
+        }
+
+        item {
+            Spacer(
+                modifier = Modifier.padding(
+                    bottom = WindowInsets.navigationBars.asPaddingValues()
+                        .calculateBottomPadding()
+                )
+            )
         }
     }
 }

@@ -25,10 +25,7 @@ import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlinx.coroutines.launch
 import nz.ac.uclive.rog19.seng440.assignment1.components.EditEntryPage
 import nz.ac.uclive.rog19.seng440.assignment1.components.LoginView
-import nz.ac.uclive.rog19.seng440.assignment1.model.GodModel
-import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntryObservable
-import nz.ac.uclive.rog19.seng440.assignment1.model.getTagsFromEntries
-import nz.ac.uclive.rog19.seng440.assignment1.model.mockModel
+import nz.ac.uclive.rog19.seng440.assignment1.model.*
 import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.TimeTrackerTheme
 import java.time.Instant
 
@@ -132,21 +129,10 @@ class MainActivity : ComponentActivity() {
                         }
                         composable("entries") {
                             TimeEntryListPage(
-                                entries = model.timeEntries,
-                                projects = model.projects,
+                                model = model,
                                 now = now,
                                 lastEntryStopTime = lastEntryStopTime,
                                 apiRequest = apiRequest,
-                                setData = { entries, projects ->
-                                    model.timeEntries.clear()
-                                    model.timeEntries.addAll(entries)
-
-                                    model.projects.clear()
-                                    model.projects.putAll(projects.associateBy { it.id })
-
-                                    model.tags =
-                                        getTagsFromEntries(model.timeEntries).toMutableStateList()
-                                },
                                 logout = {
                                     navController.navigate("login") {
                                         // Prevent return to entries page
@@ -174,9 +160,8 @@ class MainActivity : ComponentActivity() {
                         }
                         composable("edit_entry") {
                             EditEntryPage(
-                                projects = model.projects,
+                                model = model,
                                 entry = currentlyEditedEntry,
-                                allTags = model.tags,
                                 now = now,
                                 lastEntryStopTime = lastEntryStopTime,
                                 apiRequest = apiRequest,

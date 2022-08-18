@@ -1,9 +1,14 @@
 package nz.ac.uclive.rog19.seng440.assignment1.model
 
+import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.runtime.toMutableStateList
+import androidx.lifecycle.ViewModel
+import nz.ac.uclive.rog19.seng440.assignment1.TAG
+import java.sql.Time
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
@@ -18,17 +23,25 @@ fun getTagsFromEntries(entries: Collection<TimeEntry>): List<String> {
 
 // TODO https://dev.to/zachklipp/implementing-snapshot-aware-data-structures-3pi8
 class GodModel(
+    /// Map of project IDs to projects
     projects: Map<Long, Project>,
+    /// Time entries sorted by start time, newest first
     timeEntries: List<TimeEntry>,
     tags: List<String>? = null
-) {
+) : ViewModel() {
     var projects = mutableStateMapOf<Long, Project>()
-    var timeEntries = mutableStateListOf<TimeEntry>()
     var tags = mutableStateListOf<String>()
+
+    /// Should not be modified directly: use methods to do so
+    var timeEntries = mutableStateListOf<TimeEntry>()
+
+    private var entriesMap: MutableMap<Long?, TimeEntry>
 
     init {
         this.projects.putAll(projects)
         this.timeEntries.addAll(timeEntries)
+        this.entriesMap = this.timeEntries.associateBy { it.id }.toMutableMap()
+
         if (tags == null) {
             this.tags = getTagsFromEntries(timeEntries).toMutableStateList()
         } else {
@@ -45,13 +58,60 @@ class GodModel(
         } else {
             timeEntries[index] = timeEntry
         }
-        timeEntries.sortBy { it.startTime }
+        timeEntries.sortByDescending { it.startTime }
+
+        entriesMap[timeEntry.id] = timeEntry
     }
+
+    fun addEntries(entries: List<TimeEntry>) {
+        entries.forEach {
+            entriesMap[it.id] = it
+        }
+
+        timeEntries.clear()
+        timeEntries.addAll(entriesMap.values)
+        timeEntries.sortByDescending { it.startTime }
+    }
+
+
+    fun setProjects(projects: List<Project>) {
+        this.projects.clear()
+        this.projects.putAll(projects.associateBy { it.id })
+    }
+
+    /// - Parameter timeEntries: time entries sorted by start time, newest first
+//    fun addContiguousEntries(timeEntries: List<TimeEntry>) {
+//        if (timeEntries.isEmpty()) return;
+//        val startIndex =
+//            this.timeEntries.indexOfFirst { timeEntries.first().startTime <= it.startTime }
+//        val endIndex = this.timeEntries.indexOfLast { it.startTime <= timeEntries.last().startTime }
+//
+//        Log.d(TAG, "startElements = 0 to ${startIndex}")
+//        Log.d(TAG, "endElements = ${endIndex} to ${this.timeEntries.count() - 1} (if endIndex != -1)")
+//        val endElements = this.timeEntries.slice(endIndex + 1 until this.timeEntries.count())
+//
+//        if (this.timeEntries.isNotEmpty() && startIndex != -1) {
+//            Log.d(TAG, "remove time entries in range = ${if (startIndex == -1) 0 else startIndex}-${if (endIndex == -1) this.timeEntries.count() - 1 else endIndex}")
+//            this.timeEntries.removeRange(
+//                if (startIndex == -1) 0 else startIndex,
+//                if (endIndex == -1) this.timeEntries.count() else endIndex + 1
+//            )
+//        }
+//        Log.d(TAG, "Array now has ${this.timeEntries.count()} items")
+//        this.timeEntries.addAll(timeEntries)
+//        endElements?.let { this.timeEntries.addAll(it) }
+//    }
 
     constructor(projects: List<Project>, timeEntries: List<TimeEntry>) : this(
         projects = projects.associateBy { it.id },
         timeEntries = timeEntries
     )
+
+    fun debugPrintEntries() {
+        timeEntries.forEach {
+            Log.d(TAG, it.description)
+        }
+    }
 }
 
 val mockModel = GodModel(
@@ -95,3 +155,64 @@ val mockModel = GodModel(
 
     )
 )
+
+
+//fun testAdd() {
+//    val t = Instant.now()
+//
+//    val testInitial = listOf<TimeEntry>(
+//        TimeEntry(startTime = t, description = "0"),
+//        TimeEntry(startTime = t.plusSeconds(1), description = "1"),
+//        TimeEntry(startTime = t.plusSeconds(2), description = "2"),
+//    )
+//    val testModel = GodModel(emptyList(), emptyList())
+//    testModel.addContiguousEntries(testInitial)
+//    testModel.debugPrintEntries()
+//
+//
+//    Log.d(TAG, "Re-adding same entries")
+//    testModel.addContiguousEntries(testInitial)
+//    testModel.debugPrintEntries()
+//
+//    Log.d(TAG, "Add later overlap")
+//    testModel.addContiguousEntries(
+//        listOf(
+//            TimeEntry(startTime = t.plusSeconds(2), description = "2"),
+//            TimeEntry(startTime = t.plusSeconds(3), description = "3"),
+//            TimeEntry(startTime = t.plusSeconds(4), description = "4"),
+//        )
+//    )
+//    testModel.debugPrintEntries()
+//
+//    Log.d(TAG, "Add later, no overlap")
+//    testModel.addContiguousEntries(
+//        listOf(
+//            TimeEntry(startTime = t.plusSeconds(6), description = "6"),
+//            TimeEntry(startTime = t.plusSeconds(7), description = "7"),
+//            TimeEntry(startTime = t.plusSeconds(8), description = "8"),
+//        )
+//    )
+//    testModel.debugPrintEntries()
+//
+//    Log.d(TAG, "Add prior, overlap")
+//    testModel.addContiguousEntries(
+//        listOf(
+//            TimeEntry(startTime = t.plusSeconds(-1), description = "-1"),
+//            TimeEntry(startTime = t.plusSeconds(0), description = "0"),
+//            TimeEntry(startTime = t.plusSeconds(1), description = "1"),
+//        )
+//    )
+//    testModel.debugPrintEntries()
+//
+//    Log.d(TAG, "Add prior, no overlap")
+//    testModel.addContiguousEntries(
+//        listOf(
+//            TimeEntry(startTime = t.plusSeconds(-6), description = "-6"),
+//            TimeEntry(startTime = t.plusSeconds(-5), description = "-5"),
+//            TimeEntry(startTime = t.plusSeconds(-4), description = "-4"),
+//        )
+//    )
+//    testModel.debugPrintEntries()
+//}
+//
+

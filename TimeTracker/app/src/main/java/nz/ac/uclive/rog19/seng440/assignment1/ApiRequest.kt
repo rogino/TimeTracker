@@ -3,10 +3,7 @@ package nz.ac.uclive.rog19.seng440.assignment1
 import android.util.Log
 import com.beust.klaxon.Klaxon
 import kotlinx.coroutines.suspendCancellableCoroutine
-import nz.ac.uclive.rog19.seng440.assignment1.model.DateTimeConverter
-import nz.ac.uclive.rog19.seng440.assignment1.model.Me
-import nz.ac.uclive.rog19.seng440.assignment1.model.Project
-import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntry
+import nz.ac.uclive.rog19.seng440.assignment1.model.*
 import okhttp3.*
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaType
@@ -80,11 +77,15 @@ class ApiRequest {
 
     private val jsonType = "application/json; charset=utf-8".toMediaType()
 
-    suspend fun getTags(): List<Project>? {
-        get("${domain}/${rootPath}/workspaces/${workspaceId}/projects", client!!)?.let {
-            return jsonConverter.parseArray<Project>(it)
+    suspend fun getRawTags(): List<TogglTag>? {
+        get("${domain}/${rootPath}/me/tags", client!!)?.let {
+            return jsonConverter.parseArray<TogglTag>(it)
         }
         return null
+    }
+
+    suspend fun getTags(): List<String>? {
+        return getRawTags()?.filter { it.workspaceId == workspaceId!! }?.map { it.name }
     }
 
     suspend fun getProjects(): List<Project>? {

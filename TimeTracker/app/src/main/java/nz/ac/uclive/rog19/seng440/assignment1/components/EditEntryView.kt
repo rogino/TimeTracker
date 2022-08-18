@@ -18,8 +18,8 @@ import androidx.compose.ui.unit.dp
 import com.google.accompanist.insets.ui.TopAppBar
 import kotlinx.coroutines.launch
 import nz.ac.uclive.rog19.seng440.assignment1.ApiRequest
+import nz.ac.uclive.rog19.seng440.assignment1.model.GodModel
 import nz.ac.uclive.rog19.seng440.assignment1.model.Project
-import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntry
 import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntryObservable
 import nz.ac.uclive.rog19.seng440.assignment1.model.mockModel
 import nz.ac.uclive.rog19.seng440.assignment1.newlineEtAlRegex
@@ -32,8 +32,7 @@ import java.time.ZoneId
 fun EditEntryPage(
     entry: TimeEntryObservable = remember { TimeEntryObservable() },
     lastEntryStopTime: Instant? = null,
-    projects: Map<Long, Project>,
-    allTags: Collection<String>,
+    model: GodModel,
     now: State<Instant> = mutableStateOf(Instant.now()),
     zoneId: ZoneId = Clock.systemDefaultZone().zone,
     allowEditing: Boolean = true,
@@ -65,15 +64,16 @@ fun EditEntryPage(
                                 val payload = entry.toTimeEntry()
                                 if (payload == null) return@launch
                                 isSaving = true
-                                val response: TimeEntry?
                                 try {
-                                    if (entry.id != null) response =
-                                        apiRequest.updateTimeEntry(payload)
-                                    else response = apiRequest.newTimeEntry(payload)
+
+                                    val response =
+                                        if (entry.id != null) apiRequest.updateTimeEntry(payload)
+                                        else apiRequest.newTimeEntry(payload)
+                                    response?.let { entry.copyPropertiesFromEntry(response) }
+                                    model.addOrUpdate(entry.toTimeEntry()!!)
                                 } finally {
                                     isSaving = false
                                 }
-                                response?.let { entry.copyPropertiesFromEntry(response) }
                                 goBack()
                             }
                         }, enabled = canSave && allowEditing && !isSaving,
@@ -95,8 +95,8 @@ fun EditEntryPage(
         EditEntryView(
             entry = entry,
             lastEntryStopTime = lastEntryStopTime,
-            projects = projects,
-            allTags = allTags,
+            projects = model.projects,
+            allTags = model.tags,
             now = now,
             zoneId = zoneId,
             allowEditing = allowEditing,
@@ -318,8 +318,7 @@ fun EditEntry_Preview() {
         ) {
             EditEntryPage(
                 entry = mockModel.currentEntry!!.toObservable(),
-                projects = mockModel.projects,
-                allTags = mockModel.tags,
+                model = mockModel,
                 apiRequest = ApiRequest(),
                 goBack = {},
             )
