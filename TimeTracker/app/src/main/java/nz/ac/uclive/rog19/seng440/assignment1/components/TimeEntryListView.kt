@@ -23,10 +23,7 @@ import androidx.compose.ui.unit.sp
 import com.google.accompanist.insets.ui.TopAppBar
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import nz.ac.uclive.rog19.seng440.assignment1.model.GodModel
 import nz.ac.uclive.rog19.seng440.assignment1.model.Project
 import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntry
@@ -139,25 +136,41 @@ fun TimeEntryListPage(
             state = rememberSwipeRefreshState(isRefreshing = isRefreshing),
             onRefresh = {
                 coroutineScope.launch {
-                    isRefreshing = true
-                    makeRequestShowingToastOnError(context, { isRefreshing = false }) {
-                        async {
-                            apiRequest?.getTimeEntries(
-                                startDate = Instant.now().minusSeconds(60 * 60 * 24 * 7),
-                                endDate = Instant.now().plusSeconds(60 * 60 * 24)
-                            )?.let { model.addEntries(it) }
-                        }
-                        async {
-                            apiRequest?.getProjects()?.let {
-                                model.setProjects(it)
+                    try {
+                        supervisorScope {
+                            isRefreshing = true
+                            withContext(Dispatchers.IO) {
+                                awaitAll(
+                                    async {
+                                        apiRequest?.getTimeEntries(
+                                            startDate = Instant.now()
+                                                .minusSeconds(60 * 60 * 24 * 7),
+                                            endDate = Instant.now().plusSeconds(60 * 60 * 24)
+                                        )?.let { model.addEntries(it); Log.d(TAG, "Add entries") }
+                                    },
+                                    async {
+                                        apiRequest?.getProjects()?.let {
+                                            model.setProjects(it)
+                                        }
+                                    },
+                                    async {
+                                        apiRequest?.getTags()?.let {
+                                            model.tags.clear()
+                                            model.tags.addAll(it)
+                                            Log.d(TAG, "SET TAGS")
+                                        }
+                                    }
+                                )
                             }
                         }
-                        async {
-                            apiRequest?.getTags()?.let {
-                                model.tags.clear()
-                                model.tags.addAll(it)
-                            }
-                        }
+                    } catch (err: Throwable) {
+                        Toast.makeText(
+                            context,
+                            err.message ?: err.toString(),
+                            Toast.LENGTH_LONG
+                        ).show()
+                    } finally {
+                        isRefreshing = false
                     }
                 }
             }) {
@@ -179,26 +192,45 @@ suspend fun <T> makeRequestShowingToastOnError(
     onEnd: (() -> Unit)?,
     apiCall: (suspend () -> T)
 ): T? {
-    val result = withContext(Dispatchers.IO) {
-        try {
-            Result.success(apiCall())
-        } catch (exception: Throwable) {
-            Result.failure(exception)
-        } finally {
-            onEnd?.invoke()
-        }
-    }
-        .onFailure {
-            withContext(Dispatchers.Main) {
-                Toast.makeText(
-                    context,
-                    it.message ?: it.toString(),
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-        }
+//    val result = withContext(Dispatchers.IO) {
+//        try {
+//            Result.success(apiCall())
+//        } catch (exception: Throwable) {
+//            Result.failure(exception)
+//        } finally {
+//            onEnd?.invoke()
+//        }
+//    }
+//        .onFailure {
+//            withContext(Dispatchers.Main) {
+//                Toast.makeText(
+//                    context,
+//                    it.message ?: it.toString(),
+//                    Toast.LENGTH_LONG
+//                ).show()
+//            }
+//        }
+//
+//    return result.getOrNull()
 
-    return result.getOrNull()
+    var result: T? = null
+    try {
+        withContext(Dispatchers.IO) {
+            result = apiCall()
+        }
+    } catch (exception: Throwable) {
+        withContext(Dispatchers.Main) {
+            Toast.makeText(
+                context,
+                exception.message ?: exception.toString(),
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    } finally {
+        onEnd?.invoke()
+    }
+
+    return result
 }
 
 @Composable

@@ -78,8 +78,11 @@ class ApiRequest {
     private val jsonType = "application/json; charset=utf-8".toMediaType()
 
     suspend fun getRawTags(): List<TogglTag>? {
+        Log.d(TAG, "Get tags projects for user")
         get("${domain}/${rootPath}/me/tags", client!!)?.let {
-            return jsonConverter.parseArray<TogglTag>(it)
+            val tags = jsonConverter.parseArray<TogglTag>(it)
+            Log.d(TAG, "Get ${tags?.count()} tags projects for user")
+            return tags
         }
         return null
     }
@@ -89,17 +92,22 @@ class ApiRequest {
     }
 
     suspend fun getProjects(): List<Project>? {
+        Log.d(TAG, "Get projects for workspace $workspaceId")
         get("${domain}/${rootPath}/workspaces/${workspaceId}/projects", client!!)?.let {
-            return jsonConverter.parseArray<Project>(it)
+            val projects = jsonConverter.parseArray<Project>(it)
+            Log.d(TAG, "Get ${projects?.count()} projects from workspace $workspaceId")
+            return projects
         }
         return null
     }
 
     suspend fun getCurrentTimeEntry(): TimeEntry? {
+        Log.d(TAG, "Get current time entry")
         get("${domain}/${rootPath}/me/time_entries/current", client!!)?.let {
             if (it != "null") {
                 // if no timer currently active, returns `null` which cannot be parsed as JSON
-                return jsonConverter.parse<TimeEntry>(it)
+                val entry = jsonConverter.parse<TimeEntry>(it)
+                Log.d(TAG, "Get current time entry(id = ${entry?.id})")
             }
         }
         return null
@@ -109,9 +117,9 @@ class ApiRequest {
         var url = buildUrl
             .addPathSegments("workspaces/${workspaceId}/time_entries/${entry.id}")
             .build()
-        Log.d(TAG, "UPDATE TIME ENTRY: ${url}")
-        Log.d(TAG, jsonConverter.toJsonString(entry))
+        Log.d(TAG, "Update time entry(id=${entry.id})")
         post(url, jsonConverter.toJsonString(entry).toRequestBody(jsonType), put = true)?.let {
+            Log.d(TAG, "Time entry(id=${entry.id}) updated")
             return jsonConverter.parse<TimeEntry>(it)
         }
         return null
@@ -124,9 +132,11 @@ class ApiRequest {
         var url = buildUrl
             .addPathSegments("workspaces/${workspaceId}/time_entries")
             .build()
-        Log.d(TAG, jsonConverter.toJsonString(entry))
+        Log.d(TAG, "Create time entry")
         post(url, jsonConverter.toJsonString(entry).toRequestBody(jsonType))?.let {
-            return jsonConverter.parse<TimeEntry>(it)
+            val entry = jsonConverter.parse<TimeEntry>(it)
+            Log.d(TAG, "Time entry(id = ${entry?.id}) created")
+            return entry
         }
         return null
     }
@@ -140,10 +150,12 @@ class ApiRequest {
             .addPathSegments("me")
             .build()
 
+        Log.d(TAG, "Authenticate user with email=$email")
         get(url, client)?.let { body ->
             return jsonConverter.parse<Me>(body)?.also {
                 apiKey = it.apiToken
                 defaultWorkspaceId = it.defaultWorkspaceId
+                Log.d(TAG, "User authenticated, set workspace to ${it.defaultWorkspaceId}")
             }
         }
 
@@ -155,26 +167,29 @@ class ApiRequest {
         startDate: Instant? = null,
         endDate: Instant? = null
     ): List<TimeEntry>? {
-        var url = buildUrl.addPathSegments("me/time_entries")
+        var urlBuilder = buildUrl.addPathSegments("me/time_entries")
         startDate?.let {
-            url = if (endDate == null) {
-                url.addQueryParameter("since", (it.toEpochMilli() / 1000).toString())
+            urlBuilder = if (endDate == null) {
+                urlBuilder.addQueryParameter("since", (it.toEpochMilli() / 1000).toString())
             } else {
                 // v9 API: YYYY-MM-DD
-                url.addQueryParameter("start_date", it.toString().substring(0..9))
+                urlBuilder.addQueryParameter("start_date", it.toString().substring(0..9))
             }
         }
         endDate?.let {
-            url = if (startDate == null) {
-                url.addQueryParameter("before", (it.toEpochMilli() / 1000).toString())
+            urlBuilder = if (startDate == null) {
+                urlBuilder.addQueryParameter("before", (it.toEpochMilli() / 1000).toString())
             } else {
-                url.addQueryParameter("end_date", it.toString().substring(0..9))
+                urlBuilder.addQueryParameter("end_date", it.toString().substring(0..9))
             }
         }
 
-        get(url.build(), client!!)?.let {
-            Log.d(TAG, it.toString())
-            return jsonConverter.parseArray<TimeEntry>(it)
+        val url = urlBuilder.build()
+        Log.d(TAG, "Get time entries, url = $url")
+        get(url, client!!)?.let {
+            val entries = jsonConverter.parseArray<TimeEntry>(it)
+            Log.d(TAG, "Retrieve ${entries?.count()} entries, date range ${entries?.last()?.startTime} - ${entries?.first()?.startTime}")
+            return entries
         }
         return null
     }
