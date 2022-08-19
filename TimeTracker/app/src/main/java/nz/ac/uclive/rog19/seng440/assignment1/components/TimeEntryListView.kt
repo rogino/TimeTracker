@@ -7,6 +7,8 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MoreVert
@@ -135,102 +137,84 @@ fun TimeEntryListPage(
         SwipeRefresh(
             state = rememberSwipeRefreshState(isRefreshing = isRefreshing),
             onRefresh = {
-                coroutineScope.launch {
-                    try {
-                        supervisorScope {
-                            isRefreshing = true
-                            withContext(Dispatchers.IO) {
-                                awaitAll(
-                                    async {
-                                        apiRequest?.getTimeEntries(
-                                            startDate = Instant.now()
-                                                .minusSeconds(60 * 60 * 24 * 7),
-                                            endDate = Instant.now().plusSeconds(60 * 60 * 24)
-                                        )?.let { model.addEntries(it); Log.d(TAG, "Add entries") }
-                                    },
-                                    async {
-                                        apiRequest?.getProjects()?.let {
-                                            model.setProjects(it)
-                                        }
-                                    },
-                                    async {
-                                        apiRequest?.getTags()?.let {
-                                            model.tags.clear()
-                                            model.tags.addAll(it)
-                                            Log.d(TAG, "SET TAGS")
-                                        }
-                                    }
-                                )
-                            }
+                isRefreshing = true
+                makeRequestsShowingToastOnError(
+                    coroutineScope,
+                    context,
+                    { isRefreshing = false },
+                    {
+                        apiRequest?.getTimeEntries(
+                            startDate = Instant.now()
+                                .minusSeconds(60 * 60 * 24 * 7),
+                            endDate = Instant.now().plusSeconds(60 * 60 * 24)
+                        )?.let { model.addEntries(it) }
+                    },
+                    {
+                        apiRequest?.getProjects()?.let {
+                            model.setProjects(it)
                         }
-                    } catch (err: Throwable) {
-                        Toast.makeText(
-                            context,
-                            err.message ?: err.toString(),
-                            Toast.LENGTH_LONG
-                        ).show()
-                    } finally {
-                        isRefreshing = false
+                    },
+                    {
+                        apiRequest?.getTags()?.let {
+                            model.tags.clear()
+                            model.tags.addAll(it)
+                            Log.d(TAG, "SET TAGS")
+                        }
+                    }
+                )
+            }) {
+            if (model.timeEntries.isNotEmpty()) {
+                TimeEntryListView(
+                    modifier = modifier,
+                    entries = model.timeEntries,
+                    projects = model.projects,
+                    lastEntryStopTime = lastEntryStopTime,
+                    zoneId = zoneId,
+                    now = now,
+                    editEntry = editEntry
+                )
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(text = "No entries")
                     }
                 }
-            }) {
-            TimeEntryListView(
-                modifier = modifier,
-                entries = model.timeEntries,
-                projects = model.projects,
-                lastEntryStopTime = lastEntryStopTime,
-                zoneId = zoneId,
-                now = now,
-                editEntry = editEntry
-            )
+            }
         }
     }
 }
 
-suspend fun <T> makeRequestShowingToastOnError(
+fun makeRequestsShowingToastOnError(
+    coroutineScope: CoroutineScope,
     context: Context,
-    onEnd: (() -> Unit)?,
-    apiCall: (suspend () -> T)
-): T? {
-//    val result = withContext(Dispatchers.IO) {
-//        try {
-//            Result.success(apiCall())
-//        } catch (exception: Throwable) {
-//            Result.failure(exception)
-//        } finally {
-//            onEnd?.invoke()
-//        }
-//    }
-//        .onFailure {
-//            withContext(Dispatchers.Main) {
-//                Toast.makeText(
-//                    context,
-//                    it.message ?: it.toString(),
-//                    Toast.LENGTH_LONG
-//                ).show()
-//            }
-//        }
-//
-//    return result.getOrNull()
-
-    var result: T? = null
-    try {
-        withContext(Dispatchers.IO) {
-            result = apiCall()
-        }
-    } catch (exception: Throwable) {
-        withContext(Dispatchers.Main) {
+    onEnd: ((Boolean) -> Unit)?,
+    vararg apiCalls: (suspend () -> Unit)
+) {
+    coroutineScope.launch {
+        try {
+            supervisorScope {
+                withContext(Dispatchers.IO) {
+                    apiCalls.map { async { it() } }.awaitAll()
+                }
+            }
+            onEnd?.invoke(true)
+        } catch (err: Throwable) {
+            onEnd?.invoke(false)
             Toast.makeText(
                 context,
-                exception.message ?: exception.toString(),
+                err.message ?: err.toString(),
                 Toast.LENGTH_LONG
             ).show()
         }
-    } finally {
-        onEnd?.invoke()
     }
-
-    return result
 }
 
 @Composable

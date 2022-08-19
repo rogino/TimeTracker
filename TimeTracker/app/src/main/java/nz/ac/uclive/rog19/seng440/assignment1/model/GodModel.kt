@@ -107,6 +107,12 @@ class GodModel(
         timeEntries = timeEntries
     )
 
+    constructor() : this(
+        projects = emptyMap(),
+        timeEntries = emptyList()
+    )
+
+
     fun debugPrintEntries() {
         timeEntries.forEach {
             Log.d(TAG, it.description)

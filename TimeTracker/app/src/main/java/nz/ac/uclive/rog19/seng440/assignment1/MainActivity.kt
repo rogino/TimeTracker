@@ -45,7 +45,7 @@ class MainActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
 
-        model = mockModel
+        model = GodModel()
         apiRequest = ApiRequest()
 
         val preferences = getSharedPreferences(timeTrackerPreferencesFileName, Context.MODE_PRIVATE)
