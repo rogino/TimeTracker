@@ -4,9 +4,12 @@ import android.util.Patterns
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons.Outlined
+import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,6 +51,12 @@ fun LoginView(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.fillMaxSize(),
     ) {
+        Icon(
+            Outlined.Timer,
+            "timer icon",
+            tint = MaterialTheme.colors.primary,
+            modifier = Modifier.size(128.dp)
+        )
         TextField(
             value = email,
             label = { Text(text = "Email") },

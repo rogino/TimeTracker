@@ -184,7 +184,9 @@ fun TimeEntryListPage(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        Text(text = "No entries")
+                        Column {
+                            Text(text = "No entries", style = MaterialTheme.typography.h6)
+                        }
                     }
                 }
             }
