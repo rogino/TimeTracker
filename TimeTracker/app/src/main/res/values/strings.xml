@@ -47,4 +47,6 @@
     <string name="now">now</string>
     <string name="ok">Ok</string>
     <string name="cancel">Cancel</string>
+    <string name="login_page_title">Login to Toggl Track</string>
+    <string name="total_group_duration">Total %1$s</string>
 </resources>

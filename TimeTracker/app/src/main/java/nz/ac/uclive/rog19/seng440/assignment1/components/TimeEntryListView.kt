@@ -427,7 +427,7 @@ fun GroupDurationText(
         Pair(group.totalDuration, 2)
     }
     Text(
-        text = "Total ${durationFormatter(totalDuration, numComponents = numComponents)}",
+        text = stringResource(id = R.string.total_group_duration, durationFormatter(totalDuration, numComponents = numComponents)),
         modifier = modifier
     )
 }

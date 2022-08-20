@@ -64,7 +64,7 @@ fun LoginView(
                 .aspectRatio(1f)
         )
 
-        Text(text = "Log in to Toggl Track",
+        Text(text = stringResource(R.string.login_page_title),
             style = MaterialTheme.typography.h6
         )
 

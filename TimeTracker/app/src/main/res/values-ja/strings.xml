@@ -42,4 +42,8 @@
     <string name="api_error_http_code">"HTTP 受信エラーコード　$1$d"</string>
     <string name="delete_time_entry">入力削除</string>
     <string name="time_entries">入力時刻</string>
+    <string name="cancel">キャンセル</string>
+    <string name="ok">Ok</string>
+    <string name="now">現在</string>
+    <string name="last_stop_time">最後の終了時刻</string>
 </resources>
