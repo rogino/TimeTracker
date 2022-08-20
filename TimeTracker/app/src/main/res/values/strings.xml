@@ -1,3 +1,45 @@
 <resources>
     <string name="app_name">TimeTracker</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="login">Login</string>
+    <string name="logout">Logout</string>
+    <string name="error_json_not_parsed">JSON could not be parsed</string>
+    <string name="create_toggl_account">Create a Toggl Track Account</string>
+    <string name="toggl_track_signup_url" translatable="false">https://toggl.com/track/signup</string>
+    <string name="time_entry_started_time">Started %1$s</string>
+    <string name="no_description">[no description]</string>
+    <string name="time_entries">Time Entries</string>
+    <string name="no_entries">No entries</string>
+    <string name="start_time_entry_now">Start</string>
+    <string name="start_time_entry_last_stop_time">Start at last stop time</string>
+    <string name="stop_time_entry">Stop entry</string>
+    <string name="no_tags_selected">No tags selected</string>
+    <string name="tags">Tags</string>
+    <string name="no_project">No project</string>
+    <string name="no_project_selected">[no project selected]</string>
+    <string name="unknown">unknown</string>
+    <string name="project">Project</string>
+    <string name="description">Description</string>
+    <string name="start_time">Start time</string>
+    <string name="end_time">End time</string>
+    <string name="continue_time_entry">Continue time entry</string>
+    <string name="save">Save</string>
+    <string name="create_time_entry">Create time entry</string>
+    <string name="edit_time_entry">Edit time entry</string>
+    <string name="today">Today</string>
+    <string name="yesterday">Yesterday</string>
+    <string name="more">More</string>
+    <string name="icon">Icon</string>
+    <string name="back">Back</string>
+    <string name="api_error_server_connection_failed">Could not connect to the server. Check your internet connection and try again.</string>
+    <string name="api_error_no_body">No body received.</string>
+    <string name="api_error_rate_limit">Toggl API rate limiting in place - please try again later.</string>
+    <string name="api_error_invalid_credentials">Invalid credentials.</string>
+    <plurals name="api_error_invalid_credentials_x_attempts_left">
+        <item quantity="one">Invalid credentials. 1 login attempt remaining.</item>
+        <item quantity="other">Invalid credentials. %d login attempts remaining.</item>
+    </plurals>
+    <string name="api_error_not_authorized">Not authorized.</string>
+    <string name="api_error_http_code">HTTP error code %1$d received.</string>
 </resources>

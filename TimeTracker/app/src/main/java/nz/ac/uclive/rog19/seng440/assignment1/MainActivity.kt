@@ -47,6 +47,7 @@ class MainActivity : ComponentActivity() {
 
         model = GodModel()
         apiRequest = ApiRequest()
+        apiRequest.context = baseContext
 
         val preferences = getSharedPreferences(timeTrackerPreferencesFileName, Context.MODE_PRIVATE)
         var currentlyEditedEntry = TimeEntryObservable()

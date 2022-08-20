@@ -1,6 +1,5 @@
 package nz.ac.uclive.rog19.seng440.assignment1
 
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -9,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -47,7 +47,7 @@ fun TimeEntryListItem(
         }
         timeText += " - ${zonedEnd.format(timeFormatter)}"
     } ?: run {
-        timeText = "Started $timeText"
+        timeText = stringResource(R.string.time_entry_started_time, timeText)
     }
 
     var endTime = timeEntry.endTime ?: now.value
@@ -73,7 +73,7 @@ fun TimeEntryListItem(
         ) {
             val empty = timeEntry.description.trim().isEmpty()
             Text(
-                text = if (empty) "[no description]" else timeEntry.description,
+                text = if (empty) stringResource(R.string.no_description) else timeEntry.description,
                 fontSize = 18.sp,
                 fontStyle = if (empty) FontStyle.Italic else FontStyle.Normal,
                 maxLines = 3,

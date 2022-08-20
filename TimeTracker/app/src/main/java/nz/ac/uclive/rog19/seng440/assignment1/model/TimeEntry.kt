@@ -120,6 +120,8 @@ class TimeEntryObservable(
     val tagNames: SnapshotStateList<String> = mutableStateListOf(*tagNames)
     var workspaceId: Int? by mutableStateOf(workspaceId)
 
+    val isOngoing get() = endTime == null
+
     fun toTimeEntry(): TimeEntry? {
         if (startTime == null) {
             return null

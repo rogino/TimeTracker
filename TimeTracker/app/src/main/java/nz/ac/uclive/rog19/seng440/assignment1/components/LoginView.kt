@@ -14,8 +14,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
@@ -26,6 +28,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import nz.ac.uclive.rog19.seng440.assignment1.ApiRequest
+import nz.ac.uclive.rog19.seng440.assignment1.R
 import nz.ac.uclive.rog19.seng440.assignment1.model.Me
 import nz.ac.uclive.rog19.seng440.assignment1.newlineEtAlRegex
 import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.TimeTrackerTheme
@@ -42,6 +45,7 @@ fun LoginView(
     var requestInProgress by remember { mutableStateOf(false) }
 
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     val uriHandler = LocalUriHandler.current
     val focusManager = LocalFocusManager.current
@@ -53,13 +57,13 @@ fun LoginView(
     ) {
         Icon(
             Outlined.Timer,
-            "timer icon",
+            stringResource(R.string.icon),
             tint = MaterialTheme.colors.primary,
             modifier = Modifier.size(128.dp)
         )
         TextField(
             value = email,
-            label = { Text(text = "Email") },
+            label = { Text(text = stringResource(R.string.email)) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
             onValueChange = {
                 if (it.text.contains(newlineEtAlRegex)) {
@@ -72,7 +76,7 @@ fun LoginView(
 
         TextField(
             value = password,
-            label = { Text(text = "Password") },
+            label = { Text(text = stringResource(R.string.password)) },
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
@@ -94,7 +98,9 @@ fun LoginView(
                                 password = password.text
                             )?.let {
                                 onLogin?.invoke(it)
-                            } ?: run { errorMessage = "JSON could not be parsed" }
+                            } ?: run { errorMessage = context.resources.getString(
+                                R.string.error_json_not_parsed
+                            ) }
                         } catch (exception: Throwable) {
                             errorMessage = exception.message ?: exception.toString()
                         } finally {
@@ -108,7 +114,7 @@ fun LoginView(
                     Patterns.EMAIL_ADDRESS.matcher(email.text.trim()).matches() &&
                     password.text.length > 8
         ) {
-            Text(text = "Login")
+            Text(text = stringResource(R.string.login))
         }
 
         if (requestInProgress) {
@@ -120,9 +126,9 @@ fun LoginView(
         }
 
         OutlinedButton(onClick = {
-            uriHandler.openUri("https://toggl.com/track/signup")
+            uriHandler.openUri(context.resources.getString(R.string.toggl_track_signup_url))
         }) {
-            Text("Create a Toggl Track Account")
+            Text(stringResource(R.string.create_toggl_account))
         }
     }
 }

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TimeTracker</string>
+    <string name="login">ログイン</string>
+    <string name="create_toggl_account">Toggl Track アカウントを作成</string>
+    <string name="email">メールアドレス</string>
+    <string name="password">パスワード</string>
+    <string name="save">救う</string>
+    <string name="logout">ログアウト</string>
+    <string name="time_entry_started_time">%1$s 開始</string>
+    <string name="no_description">[名状しがたい]</string>
+    <string name="tags">タグ</string>
+    <string name="today">今日</string>
+    <string name="yesterday">昨日</string>
+    <string name="more">もっと</string>
+    <string name="start_time">開始時刻</string>
+    <string name="back">もどる</string>
+</resources>

@@ -1,5 +1,6 @@
 package nz.ac.uclive.rog19.seng440.assignment1
 
+import android.content.Context
 import android.util.Log
 import com.beust.klaxon.Klaxon
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -54,6 +55,9 @@ class ApiRequest {
 
     var client: OkHttpClient? = null
 
+    /// Used for localized error messages
+    var context: Context? = null
+
     init {
 //        apiKey = API_KEY
 //        workspaceId = WORKSPACE_ID
@@ -77,7 +81,7 @@ class ApiRequest {
 
     private val jsonType = "application/json; charset=utf-8".toMediaType()
 
-    suspend fun getRawTags(): List<TogglTag>? {
+    suspend fun getTags(): List<TogglTag>? {
         Log.d(TAG, "Get tags projects for user")
         get("${domain}/${rootPath}/me/tags", client!!)?.let {
             val tags = jsonConverter.parseArray<TogglTag>(it)
@@ -87,8 +91,8 @@ class ApiRequest {
         return null
     }
 
-    suspend fun getTags(): List<String>? {
-        return getRawTags()?.filter { it.workspaceId == workspaceId!! }?.map { it.name }
+    suspend fun getStringTags(): List<String>? {
+        return getTags()?.filter { it.workspaceId == workspaceId!! }?.map { it.name }
     }
 
     suspend fun getProjects(): List<Project>? {
@@ -229,8 +233,8 @@ class ApiRequest {
                 override fun onFailure(call: Call, e: IOException) {
                     if (e is UnknownHostException) {
                         return continuation.resumeWithException(
-                            TogglApiException(
-                                "Could not connect to server. Check your internet connection and try again"
+                            TogglApiException(context?.getString(R.string.api_error_server_connection_failed) ?:
+                                "Could not connect to server"
                             )
                         )
                     }
@@ -243,7 +247,9 @@ class ApiRequest {
                     if (response.isSuccessful) {
                         if (response.body == null) {
                             response.close()
-                            return continuation.resumeWithException(TogglApiException("No body received"))
+                            return continuation.resumeWithException( TogglApiException(
+                                context?.getString(R.string.api_error_no_body) ?: "No body received"
+                            ))
                         }
                         val body = response.body!!.string()
                         response.close()
@@ -255,21 +261,31 @@ class ApiRequest {
 
                     val exception = when (response.code) {
                         429 -> {
-                            TogglApiException("Toggl API rate limiting in place - please try again later")
+                            TogglApiException(
+                                context?.getString(R.string.api_error_rate_limit) ?: "Toggl rate limit"
+                            )
                         }
                         403 -> {
-                            var message = "Invalid credentials"
-                            val attemptsRemaining = response.headers["x-remaining-login-attempts"]
-                            attemptsRemaining?.let {
-                                message += ". $attemptsRemaining login attempts remaining"
+                            val attemptsRemaining = response.headers["x-remaining-login-attempts"]?.toIntOrNull()
+                            val message = if (attemptsRemaining == null) {
+                                context?.getString(R.string.api_error_invalid_credentials) ?: "Invalid credentials"
+                            } else {
+                                context?.resources?.getQuantityString(
+                                    R.plurals.api_error_invalid_credentials_x_attempts_left,
+                                    attemptsRemaining
+                                    ) ?:
+                                "Invalid credentials. $attemptsRemaining attempts left"
                             }
                             TogglApiException(message)
                         }
                         401 -> {
-                            TogglApiException("Not authorized")
+                            TogglApiException(
+                                context?.getString(R.string.api_error_not_authorized) ?: "Not authorized"
+                            )
                         }
                         else -> {
-                            TogglApiException("Error code ${response.code} received")
+                            TogglApiException(
+                                context?.getString(R.string.api_error_http_code) ?: "Error ${response.code}")
                         }
                     }
                     response.close()

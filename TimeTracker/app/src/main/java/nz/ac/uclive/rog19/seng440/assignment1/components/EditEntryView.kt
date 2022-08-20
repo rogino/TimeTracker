@@ -12,12 +12,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.insets.ui.TopAppBar
 import kotlinx.coroutines.launch
 import nz.ac.uclive.rog19.seng440.assignment1.ApiRequest
+import nz.ac.uclive.rog19.seng440.assignment1.R
 import nz.ac.uclive.rog19.seng440.assignment1.model.GodModel
 import nz.ac.uclive.rog19.seng440.assignment1.model.Project
 import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntryObservable
@@ -49,12 +51,12 @@ fun EditEntryPage(
             TopAppBar(
                 title = {
                     Text(
-                        text = "${if (entry.id == null) "Create" else "Edit"} Time Entry"
+                        text = stringResource(if (entry.isOngoing) R.string.create_time_entry else R.string.edit_time_entry)
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = { goBack() }) {
-                        Icon(Icons.Filled.ArrowBack, "backIcon")
+                        Icon(Icons.Filled.ArrowBack, stringResource(R.string.back))
                     }
                 },
                 actions = {
@@ -65,7 +67,6 @@ fun EditEntryPage(
                                 if (payload == null) return@launch
                                 isSaving = true
                                 try {
-
                                     val response =
                                         if (entry.id != null) apiRequest.updateTimeEntry(payload)
                                         else apiRequest.newTimeEntry(payload)
@@ -84,7 +85,7 @@ fun EditEntryPage(
                             disabledBackgroundColor = Color.Transparent
                         )
                     ) {
-                        Text(text = "Save", style = MaterialTheme.typography.body1)
+                        Text(text = stringResource(R.string.save), style = MaterialTheme.typography.body1)
                     }
                 },
                 contentPadding = WindowInsets.statusBars.asPaddingValues()
@@ -100,6 +101,7 @@ fun EditEntryPage(
             now = now,
             zoneId = zoneId,
             allowEditing = allowEditing,
+            isCurrentOrNewestTimeEntry = entry.isOngoing || model.timeEntries.first().id == entry.id,
             modifier = modifier,
         )
     }
@@ -115,15 +117,15 @@ fun EditEntryView(
     now: State<Instant> = mutableStateOf(Instant.now()),
     zoneId: ZoneId = Clock.systemDefaultZone().zone,
     allowEditing: Boolean = true,
+    isCurrentOrNewestTimeEntry: Boolean,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        val coroutineScope = rememberCoroutineScope()
         val focusManager = LocalFocusManager.current
 
         OutlinedTextField(
             value = entry.description,
-            label = { Text(text = "Description") },
+            label = { Text(text = stringResource(R.string.description)) },
             onValueChange = {
                 if (it.contains(newlineEtAlRegex)) {
                     focusManager.moveFocus(FocusDirection.Next)
@@ -152,7 +154,7 @@ fun EditEntryView(
         )
 
         SelectTimeView(
-            label = "Start Time",
+            label = stringResource(R.string.start_time),
             date = entry.startTime,
             zoneId = zoneId,
             lastStopTime = lastEntryStopTime,
@@ -163,11 +165,11 @@ fun EditEntryView(
         )
 
         SelectTimeView(
-            label = "End Time",
+            label = stringResource(R.string.end_time),
             date = entry.endTime,
             zoneId = zoneId,
             lastStopTime = null,
-            unsetText = "Continue time entry",
+            unsetText = if (isCurrentOrNewestTimeEntry) stringResource(R.string.continue_time_entry) else null,
             now = if (lastEntryStopTime != null) now.value else null,
             setDate = { entry.endTime = it },
             allowEditing = allowEditing,
@@ -206,10 +208,10 @@ fun SelectProjectDropdown(
         OutlinedTextField(
             readOnly = true,
             enabled = allowEditing,
-            value = if (selectedProject == null) "[No project selected]" else (selectedProject?.name
-                ?: "Unknown"),
+            value = if (selectedProject == null) stringResource(R.string.no_project_selected)
+            else (selectedProject?.name ?: stringResource(R.string.unknown)),
             onValueChange = {},
-            label = { Text(text = "Project") },
+            label = { Text(text = stringResource(R.string.project)) },
             trailingIcon = {
                 ColoredDot(project = selectedProject)
             },
@@ -241,7 +243,7 @@ fun SelectProjectDropdown(
                             project = project,
                             modifier = Modifier.padding(end = 4.dp)
                         )
-                        Text(text = project?.name ?: "No project")
+                        Text(text = project?.name ?: stringResource(R.string.no_project))
                     }
                 }
             }
@@ -268,9 +270,10 @@ fun SelectTagsDropdown(
         OutlinedTextField(
             readOnly = true,
             enabled = allowEditing,
-            value = if (selectedTags.isNotEmpty()) selectedTags.joinToString { it } else "[No tags selected]",
+            value = if (selectedTags.isNotEmpty()) selectedTags.joinToString { it }
+            else stringResource(R.string.no_tags_selected),
             onValueChange = {},
-            label = { Text(text = "Tags") },
+            label = { Text(text = stringResource(R.string.tags)) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = listOpen.value) },
             modifier = Modifier
                 .fillMaxWidth()

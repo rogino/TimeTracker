@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -50,7 +51,12 @@ class TimeEntryPeriod(
 
 }
 
-fun groupEntries(entries: List<TimeEntry>, zoneId: ZoneId, now: Instant): List<TimeEntryPeriod> {
+fun groupEntries(
+    entries: List<TimeEntry>,
+    zoneId: ZoneId,
+    now: Instant,
+    context: Context? = null
+): List<TimeEntryPeriod> {
     var groups = ArrayList<TimeEntryPeriod>()
     val nowDate: LocalDate = ZonedDateTime.ofInstant(now, zoneId).toLocalDate()
 
@@ -69,9 +75,9 @@ fun groupEntries(entries: List<TimeEntry>, zoneId: ZoneId, now: Instant): List<T
 
             var name: String = date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
             if (date.isEqual(nowDate)) {
-                name = "Today"
+                name = context?.getString(R.string.today) ?: "TODAY"
             } else if (date.isEqual(nowDate.minusDays(1))) {
-                name = "Yesterday"
+                name = context?.getString(R.string.yesterday) ?: "YESTERDAY"
             }
             currentPeriod = TimeEntryPeriod(name)
         }
@@ -93,7 +99,7 @@ fun OverflowMenu(content: @Composable () -> Unit) {
     }) {
         Icon(
             imageVector = Icons.Outlined.MoreVert,
-            contentDescription = "More" // stringResource(R.string.more),
+            contentDescription = stringResource(R.string.more)
         )
     }
     DropdownMenu(
@@ -117,11 +123,11 @@ fun TimeEntryListPage(
 ) {
     Scaffold(topBar = {
         TopAppBar(
-            title = { Text(text = "Time Entries") },
+            title = { Text(text = stringResource(R.string.time_entries)) },
             actions = {
                 OverflowMenu {
                     DropdownMenuItem(onClick = { logout?.invoke() }) {
-                        Text(text = "Logout")
+                        Text(text = stringResource(R.string.logout))
                     }
                 }
             },
@@ -155,10 +161,9 @@ fun TimeEntryListPage(
                         }
                     },
                     {
-                        apiRequest?.getTags()?.let {
+                        apiRequest?.getStringTags()?.let {
                             model.tags.clear()
                             model.tags.addAll(it)
-                            Log.d(TAG, "SET TAGS")
                         }
                     }
                 )
@@ -185,7 +190,10 @@ fun TimeEntryListPage(
                         horizontalArrangement = Arrangement.Center
                     ) {
                         Column {
-                            Text(text = "No entries", style = MaterialTheme.typography.h6)
+                            Text(
+                                text = stringResource(R.string.no_entries),
+                                style = MaterialTheme.typography.h6
+                            )
                         }
                     }
                 }
@@ -229,10 +237,11 @@ fun TimeEntryListView(
     now: State<Instant> = mutableStateOf(Instant.now()),
     editEntry: ((TimeEntry?) -> Unit)? = null
 ) {
+    val context = LocalContext.current
     LazyColumn(modifier = modifier) {
         // TODO somehow cache, or send in LocalDate as a state object: don't read now.value
         // (and don't use Instant.now()) in order to prevent unnecessary redraws
-        groupEntries(entries, zoneId, Instant.now()).forEachIndexed { i, group ->
+        groupEntries(entries, zoneId, Instant.now(), context).forEachIndexed { i, group ->
             item {
                 Row(
                     modifier = Modifier
@@ -311,16 +320,16 @@ fun TimeEntryListItemDropdownMenu(
 
     DropdownMenu(expanded = expanded, onDismissRequest = dismiss) {
         DropdownMenuItem(onClick = { editWithStartTime(startTime = Instant.now()) }) {
-            Text("Start")
+            Text(stringResource(R.string.start_time_entry_now))
         }
         lastEntryStopTime?.let {
             DropdownMenuItem(onClick = { editWithStartTime(startTime = it) }) {
-                Text("Start at last stop time")
+                Text(stringResource(R.string.start_time_entry_last_stop_time))
             }
         }
         if (entry.isOngoing) {
             DropdownMenuItem(onClick = { Log.d(TAG, "TODO") }) {
-                Text("Stop entry")
+                Text(stringResource(R.string.stop_time_entry))
             }
         }
     }
