@@ -4,4 +4,4 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108"
-    android:tint="@android:color/transparent"/>
+    android:tint="@android:color/transparent">

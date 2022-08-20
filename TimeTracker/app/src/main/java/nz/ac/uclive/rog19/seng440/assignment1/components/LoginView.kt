@@ -1,22 +1,22 @@
 package nz.ac.uclive.rog19.seng440.assignment1.components
 
 import android.util.Patterns
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
-import androidx.compose.material.icons.Icons.Outlined
-import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -55,12 +55,19 @@ fun LoginView(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.fillMaxSize(),
     ) {
-        Icon(
-            Outlined.Timer,
-            stringResource(R.string.icon),
-            tint = MaterialTheme.colors.primary,
-            modifier = Modifier.size(128.dp)
+        Image(
+            painterResource(R.mipmap.ic_launcher_foreground),
+            contentDescription = stringResource(R.string.icon),
+            contentScale = ContentScale.Fit,
+            modifier = Modifier
+                .fillMaxWidth(0.5f)
+                .aspectRatio(1f)
         )
+
+        Text(text = "Log in to Toggl Track",
+            style = MaterialTheme.typography.h6
+        )
+
         TextField(
             value = email,
             label = { Text(text = stringResource(R.string.email)) },
@@ -98,9 +105,11 @@ fun LoginView(
                                 password = password.text
                             )?.let {
                                 onLogin?.invoke(it)
-                            } ?: run { errorMessage = context.resources.getString(
-                                R.string.error_json_not_parsed
-                            ) }
+                            } ?: run {
+                                errorMessage = context.resources.getString(
+                                    R.string.error_json_not_parsed
+                                )
+                            }
                         } catch (exception: Throwable) {
                             errorMessage = exception.message ?: exception.toString()
                         } finally {
