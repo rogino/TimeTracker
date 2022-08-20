@@ -4,6 +4,7 @@ import android.text.format.DateFormat
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -14,12 +15,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.vanpra.composematerialdialogs.MaterialDialog
 import com.vanpra.composematerialdialogs.datetime.date.datepicker
 import com.vanpra.composematerialdialogs.datetime.time.timepicker
 import com.vanpra.composematerialdialogs.rememberMaterialDialogState
+import nz.ac.uclive.rog19.seng440.assignment1.R
 import java.text.Format
 import java.text.SimpleDateFormat
 import java.time.*
@@ -58,6 +61,10 @@ fun SelectTimeView(
     )
     val outlinedBoringButtonColors: ButtonColors = ButtonDefaults.outlinedButtonColors(
         contentColor = LocalContentColor.current.copy(LocalContentAlpha.current)
+    )
+    val buttonBorder = BorderStroke(
+        ButtonDefaults.outlinedBorder.width,
+        MaterialTheme.colors.secondary
     )
 
     fun toggleExpand() {
@@ -111,13 +118,16 @@ fun SelectTimeView(
                         onClick = { if (isExpanded) dateDialog.show() else toggleExpand() },
                         colors = outlinedTextFieldLikeButtonColors,
                         enabled = allowEditing,
+                        border = if (isExpanded) buttonBorder else null,
                         elevation = if (isExpanded) ButtonDefaults.elevation() else UnelevatedButtonElevation(),
                         modifier = Modifier.padding(end = 10.dp)
                     ) {
                         var dateText = dateFormatter.format(localDateTime)
-                        if (localDate.isEqual(LocalDate.now())) dateText = "Today"
-                        else if (localDate.isEqual(LocalDate.now().minusDays(1))) dateText =
-                            "Yesterday"
+                        if (localDate.isEqual(LocalDate.now())) {
+                            dateText = stringResource(R.string.today)
+                        } else if (localDate.isEqual(LocalDate.now().minusDays(1))) {
+                            dateText = stringResource(R.string.yesterday)
+                        }
                         Text(
                             text = dateText,
                             style = MaterialTheme.typography.body1,
@@ -127,6 +137,7 @@ fun SelectTimeView(
                     Button(
                         onClick = { if (isExpanded) timeDialog.show() else toggleExpand() },
                         colors = outlinedTextFieldLikeButtonColors,
+                        border = if (isExpanded) buttonBorder else null,
                         enabled = allowEditing,
                         elevation = if (isExpanded) ButtonDefaults.elevation() else UnelevatedButtonElevation(),
                         contentPadding = PaddingValues(start = 0.dp, end = buttonHorizontalPadding),
@@ -156,6 +167,7 @@ fun SelectTimeView(
                     lastStopTime = lastStopTime,
                     unsetText = unsetText,
                     buttonColors = outlinedBoringButtonColors,
+                    buttonBorder = buttonBorder,
                     allowEditing = allowEditing
                 )
             }
@@ -163,8 +175,8 @@ fun SelectTimeView(
         MaterialDialog(
             dialogState = dateDialog,
             buttons = {
-                positiveButton("Ok")
-                negativeButton("Cancel")
+                positiveButton(stringResource(R.string.ok))
+                positiveButton(stringResource(R.string.cancel))
             }
         ) {
             datepicker(initialDate = localDate) { date ->
@@ -177,8 +189,8 @@ fun SelectTimeView(
         MaterialDialog(
             dialogState = timeDialog,
             buttons = {
-                positiveButton("Ok")
-                negativeButton("Cancel")
+                positiveButton(stringResource(R.string.ok))
+                positiveButton(stringResource(R.string.cancel))
             }
         ) {
             timepicker(initialTime = localTime) { time ->
@@ -197,6 +209,7 @@ fun SelectTimeViewDeltaButtons(
     lastStopTime: Instant?,
     unsetText: String?,
     buttonColors: ButtonColors = ButtonDefaults.outlinedButtonColors(),
+    buttonBorder: BorderStroke = ButtonDefaults.outlinedBorder,
     allowEditing: Boolean = true
 ) {
     Column() {
@@ -216,14 +229,18 @@ fun SelectTimeViewDeltaButtons(
                     colors = buttonColors,
                     enabled = allowEditing && (i == null || date != null),
                     contentPadding = PaddingValues(horizontal = 8.dp),
+                    border = buttonBorder,
                     modifier = Modifier
                         .defaultMinSize(
                             minWidth = ButtonDefaults.MinHeight,
                             minHeight = ButtonDefaults.MinHeight,
                         )
-                        .padding(horizontal = 10.dp),
+                        .padding(horizontal = 10.dp)
                 ) {
-                    Text(text = if (i == null) "now" else (if (i > 0) "+$i" else "$i"))
+                    Text(
+                        text = if (i == null) stringResource(R.string.now)
+                        else (if (i > 0) "+$i" else "$i")
+                    )
                 }
             }
         }
@@ -235,16 +252,18 @@ fun SelectTimeViewDeltaButtons(
                 Button(
                     onClick = { setDate(lastStopTime) },
                     colors = buttonColors,
+                    border = buttonBorder,
                     enabled = allowEditing,
                     modifier = Modifier.padding(horizontal = 10.dp)
                 ) {
-                    Text(text = "Last stop time")
+                    Text(text = stringResource(R.string.last_stop_time))
                 }
             }
             if (unsetText != null) {
                 Button(
                     onClick = { setDate(null) },
                     colors = buttonColors,
+                    border = buttonBorder,
                     enabled = allowEditing && date != null,
                     modifier = Modifier.padding(horizontal = 10.dp)
                 ) {

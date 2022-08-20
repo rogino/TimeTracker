@@ -31,7 +31,7 @@ import nz.ac.uclive.rog19.seng440.assignment1.ApiRequest
 import nz.ac.uclive.rog19.seng440.assignment1.R
 import nz.ac.uclive.rog19.seng440.assignment1.model.Me
 import nz.ac.uclive.rog19.seng440.assignment1.newlineEtAlRegex
-import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.TimeTrackerTheme
+import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.AppTheme
 
 
 @Composable
@@ -104,7 +104,9 @@ fun LoginView(
                                 email = email.text.trim(),
                                 password = password.text
                             )?.let {
-                                onLogin?.invoke(it)
+                                withContext(Dispatchers.Main) {
+                                    onLogin?.invoke(it)
+                                }
                             } ?: run {
                                 errorMessage = context.resources.getString(
                                     R.string.error_json_not_parsed
@@ -145,7 +147,7 @@ fun LoginView(
 @Preview(showBackground = true)
 @Composable
 fun Login_Preview() {
-    TimeTrackerTheme {
+    AppTheme {
         LoginView(apiRequest = ApiRequest())
     }
 }

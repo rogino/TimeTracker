@@ -26,7 +26,7 @@ import kotlinx.coroutines.launch
 import nz.ac.uclive.rog19.seng440.assignment1.components.EditEntryPage
 import nz.ac.uclive.rog19.seng440.assignment1.components.LoginView
 import nz.ac.uclive.rog19.seng440.assignment1.model.*
-import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.TimeTrackerTheme
+import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.AppTheme
 import java.time.Instant
 
 // https://developer.android.com/studio/write/java8-support-table
@@ -87,7 +87,7 @@ class MainActivity : ComponentActivity() {
             val paddingModifier = Modifier
                 .padding(horizontal = 16.dp)
                 .padding(top = 8.dp)
-            TimeTrackerTheme {
+            AppTheme {
                 // A surface container using the 'background' color from the theme
                 Surface(
                     modifier = Modifier.fillMaxSize(),

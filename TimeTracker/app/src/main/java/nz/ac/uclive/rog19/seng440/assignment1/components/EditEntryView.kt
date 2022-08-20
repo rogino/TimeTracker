@@ -25,7 +25,7 @@ import nz.ac.uclive.rog19.seng440.assignment1.R
 import nz.ac.uclive.rog19.seng440.assignment1.makeRequestsShowingToastOnError
 import nz.ac.uclive.rog19.seng440.assignment1.model.*
 import nz.ac.uclive.rog19.seng440.assignment1.newlineEtAlRegex
-import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.TimeTrackerTheme
+import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.AppTheme
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
@@ -70,23 +70,6 @@ fun EditEntryPage(
                 }
             }
         })
-//        coroutineScope.launch {
-//            isSaving = true
-//            try {
-//                val response = withContext(Dispatchers.IO) {
-//                    }
-//                }
-//                response?.let { entry.copyPropertiesFromEntry(response) }
-//                model.addOrUpdate(entry.toTimeEntry()!!)
-//                goBack()
-//            } catch(err: Throwable) {
-//                Log.d(TAG, "!!!!!!!!!!")
-//                Log.d(TAG, err.stackTraceToString())
-//            }
-//            finally {
-//                isSaving = false
-//            }
-//        }
     }
 
     Scaffold(
@@ -388,7 +371,7 @@ fun SelectTagsDropdown(
                         }
                     },
                     modifier = Modifier.background(
-                        color = if (isSelected) Color.LightGray else Color.Unspecified
+                        color = if (isSelected) MaterialTheme.colors.onSecondary else Color.Unspecified
                     )
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -404,7 +387,7 @@ fun SelectTagsDropdown(
 @Composable
 @Preview(showBackground = true)
 fun EditEntry_Preview() {
-    TimeTrackerTheme {
+    AppTheme {
         Column(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier.height(600.dp)

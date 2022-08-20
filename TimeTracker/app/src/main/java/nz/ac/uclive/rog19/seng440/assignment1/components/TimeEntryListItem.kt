@@ -18,7 +18,7 @@ import nz.ac.uclive.rog19.seng440.assignment1.components.ColoredDot
 import nz.ac.uclive.rog19.seng440.assignment1.model.Project
 import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntry
 import nz.ac.uclive.rog19.seng440.assignment1.model.mockModel
-import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.TimeTrackerTheme
+import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.AppTheme
 import java.time.*
 import java.time.format.DateTimeFormatter
 
@@ -141,7 +141,7 @@ fun TimeEntryListItem(
 @Preview(showBackground = true)
 @Composable
 fun TimeEntryListItem_Preview() {
-    TimeTrackerTheme {
+    AppTheme {
         Column {
             TimeEntryListItem(
                 timeEntry = mockModel.timeEntries.find { it.id == 12L }!!,

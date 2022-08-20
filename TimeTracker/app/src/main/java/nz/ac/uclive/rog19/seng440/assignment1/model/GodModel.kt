@@ -177,8 +177,7 @@ val mockModel = GodModel(
             null,
             3, listOf("Assignment", "Coding")
         )
-
-    )
+    ).sortedByDescending { it.startTime }
 )
 
 

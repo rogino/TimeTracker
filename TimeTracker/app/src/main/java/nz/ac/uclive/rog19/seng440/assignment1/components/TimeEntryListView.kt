@@ -33,7 +33,7 @@ import nz.ac.uclive.rog19.seng440.assignment1.model.GodModel
 import nz.ac.uclive.rog19.seng440.assignment1.model.Project
 import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntry
 import nz.ac.uclive.rog19.seng440.assignment1.model.mockModel
-import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.TimeTrackerTheme
+import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.AppTheme
 import java.time.*
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -436,7 +436,7 @@ fun GroupDurationText(
 @Preview(showBackground = true)
 @Composable
 fun TimeEntryListView_Preview() {
-    TimeTrackerTheme {
+    AppTheme {
         TimeEntryListView(
             entries = mockModel.timeEntries,
             projects = mockModel.projects,
