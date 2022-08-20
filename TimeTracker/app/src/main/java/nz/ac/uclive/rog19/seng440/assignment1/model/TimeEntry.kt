@@ -29,7 +29,7 @@ data class TimeEntry(
     @Json(name = "start")
     var startTime: Instant = Calendar.getInstance().toInstant(),
 
-    @Json(name = "stop")
+    @Json(name = "stop", serializeNull = false)
     var endTime: Instant? = null,
 
     @Json(name = "project_id")

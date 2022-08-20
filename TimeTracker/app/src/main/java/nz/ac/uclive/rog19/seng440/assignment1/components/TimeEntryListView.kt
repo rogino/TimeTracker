@@ -3,7 +3,9 @@ package nz.ac.uclive.rog19.seng440.assignment1
 import android.content.Context
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -136,66 +138,113 @@ fun TimeEntryListPage(
     }) {
         val howDoIGetThisErrorToGoAway = it
 
-        var isRefreshing by remember { mutableStateOf<Boolean>(false) }
+        var isRefreshing by remember { mutableStateOf(false) }
+        var currentlyUpdatingEntry by remember { mutableStateOf(false) }
         var coroutineScope = rememberCoroutineScope()
         val context = LocalContext.current
 
-        SwipeRefresh(
-            state = rememberSwipeRefreshState(isRefreshing = isRefreshing),
-            onRefresh = {
-                isRefreshing = true
-                makeRequestsShowingToastOnError(
-                    coroutineScope,
-                    context,
-                    { isRefreshing = false },
-                    {
-                        apiRequest?.getTimeEntries(
-                            startDate = Instant.now()
-                                .minusSeconds(60 * 60 * 24 * 7),
-                            endDate = Instant.now().plusSeconds(60 * 60 * 24)
-                        )?.let { model.addEntries(it) }
-                    },
-                    {
-                        apiRequest?.getProjects()?.let {
-                            model.setProjects(it)
+        Box(modifier = Modifier.fillMaxSize()) {
+            SwipeRefresh(
+                state = rememberSwipeRefreshState(isRefreshing = isRefreshing),
+                onRefresh = {
+                    isRefreshing = true
+                    makeRequestsShowingToastOnError(
+                        coroutineScope,
+                        context,
+                        { isRefreshing = false },
+                        {
+                            apiRequest?.getTimeEntries(
+                                startDate = Instant.now()
+                                    .minusSeconds(60 * 60 * 24 * 7),
+                                endDate = Instant.now().plusSeconds(60 * 60 * 24)
+                            )?.let { model.addEntries(it) }
+                        },
+                        {
+                            apiRequest?.getProjects()?.let {
+                                model.setProjects(it)
+                            }
+                        },
+                        {
+                            apiRequest?.getStringTags()?.let {
+                                model.tags.clear()
+                                model.tags.addAll(it)
+                            }
                         }
-                    },
-                    {
-                        apiRequest?.getStringTags()?.let {
-                            model.tags.clear()
-                            model.tags.addAll(it)
-                        }
-                    }
-                )
-            }) {
-            if (model.timeEntries.isNotEmpty()) {
-                TimeEntryListView(
-                    modifier = modifier,
-                    entries = model.timeEntries,
-                    projects = model.projects,
-                    lastEntryStopTime = lastEntryStopTime,
-                    zoneId = zoneId,
-                    now = now,
-                    editEntry = editEntry
-                )
-            } else {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Column {
-                            Text(
-                                text = stringResource(R.string.no_entries),
-                                style = MaterialTheme.typography.h6
+                    )
+                }) {
+                if (model.timeEntries.isNotEmpty()) {
+                    TimeEntryListView(
+                        modifier = modifier,
+                        entries = model.timeEntries,
+                        projects = model.projects,
+                        entryCurrentlyOngoing = model.currentEntry != null,
+                        lastEntryStopTime = lastEntryStopTime,
+                        zoneId = zoneId,
+                        now = now,
+                        editEntry = editEntry,
+                        stopEntry = { entry ->
+                            currentlyUpdatingEntry = true
+                            makeRequestsShowingToastOnError(
+                                coroutineScope,
+                                context,
+                                { currentlyUpdatingEntry = false },
+                                {
+                                    apiRequest?.updateTimeEntry(entry.copy(endTime = Instant.now()))
+                                        ?.let {
+                                            model.addOrUpdate(it)
+                                        }
+                                }
+                            )
+                        },
+                        resumeEntry = { entry ->
+                            currentlyUpdatingEntry = true
+                            makeRequestsShowingToastOnError(
+                                coroutineScope,
+                                context,
+                                { currentlyUpdatingEntry = false },
+                                {
+                                    apiRequest?.updateTimeEntryByDeletingAndCreatingBecauseTogglV9ApiSucks(
+                                        entry.copy(endTime = null)
+                                    )?.let {
+                                        model.deleteEntry(entry.id!!)
+                                        model.addOrUpdate(it)
+                                    }
+                                }
                             )
                         }
+                    )
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Column {
+                                Text(
+                                    text = stringResource(R.string.no_entries),
+                                    style = MaterialTheme.typography.h6
+                                )
+                            }
+                        }
                     }
+                }
+            }
+            if (currentlyUpdatingEntry) {
+                Box(modifier = modifier
+                    .fillMaxSize()
+                    // prevent interaction with lower layer while loading
+                    .clickable(
+                        indication = null, // disable ripple effect
+                        interactionSource = remember { MutableInteractionSource() },
+                        onClick = { }
+                    ),
+                    contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = MaterialTheme.colors.primary)
                 }
             }
         }
@@ -218,6 +267,7 @@ fun makeRequestsShowingToastOnError(
             onEnd?.invoke(true)
         } catch (err: Throwable) {
             onEnd?.invoke(false)
+            Log.d(TAG, err.stackTraceToString())
             Toast.makeText(
                 context,
                 err.message ?: err.toString(),
@@ -232,12 +282,17 @@ fun TimeEntryListView(
     modifier: Modifier = Modifier,
     entries: SnapshotStateList<TimeEntry>,
     projects: SnapshotStateMap<Long, Project>,
+    entryCurrentlyOngoing: Boolean,
     lastEntryStopTime: Instant? = null,
     zoneId: ZoneId = Clock.systemDefaultZone().zone,
     now: State<Instant> = mutableStateOf(Instant.now()),
-    editEntry: ((TimeEntry?) -> Unit)? = null
+    editEntry: ((TimeEntry?) -> Unit)? = null,
+    stopEntry: ((TimeEntry) -> Unit)? = null,
+    resumeEntry: ((TimeEntry) -> Unit)? = null,
 ) {
     val context = LocalContext.current
+    val firstItemId = entries?.firstOrNull()?.id
+
     LazyColumn(modifier = modifier) {
         // TODO somehow cache, or send in LocalDate as a state object: don't read now.value
         // (and don't use Instant.now()) in order to prevent unnecessary redraws
@@ -283,9 +338,13 @@ fun TimeEntryListView(
                     TimeEntryListItemDropdownMenu(
                         entry = entry,
                         lastEntryStopTime = lastEntryStopTime,
+                        entryCurrentlyOngoing = entryCurrentlyOngoing,
+                        isMostRecentEntry = entry.id == firstItemId,
                         expanded = dropdownOpen,
                         dismiss = { dropdownOpen = false },
-                        editEntry = editEntry
+                        editEntry = editEntry,
+                        stopEntry = stopEntry,
+                        resumeEntry = resumeEntry,
                     )
                 }
             }
@@ -307,28 +366,49 @@ fun TimeEntryListItemDropdownMenu(
     entry: TimeEntry,
     lastEntryStopTime: Instant?,
     expanded: Boolean,
+    /// The user already hsa an ongoing entry
+    entryCurrentlyOngoing: Boolean,
+    /// The entry is the most recent entry
+    isMostRecentEntry: Boolean,
     dismiss: () -> Unit,
-    editEntry: ((TimeEntry?) -> Unit)?
+    editEntry: ((TimeEntry?) -> Unit)?,
+    stopEntry: ((TimeEntry) -> Unit)?,
+    resumeEntry: ((TimeEntry) -> Unit)?
 ) {
     fun editWithStartTime(startTime: Instant) {
-        var copy = entry.copy()
-        copy.id = null
-        copy.startTime = startTime
-        copy.endTime = null
+        var copy = entry.copy(id = null, startTime = startTime, endTime = null)
+        dismiss()
         editEntry?.invoke(copy)
     }
 
     DropdownMenu(expanded = expanded, onDismissRequest = dismiss) {
-        DropdownMenuItem(onClick = { editWithStartTime(startTime = Instant.now()) }) {
-            Text(stringResource(R.string.start_time_entry_now))
-        }
-        lastEntryStopTime?.let {
-            DropdownMenuItem(onClick = { editWithStartTime(startTime = it) }) {
-                Text(stringResource(R.string.start_time_entry_last_stop_time))
+        if (!entryCurrentlyOngoing) {
+            DropdownMenuItem(onClick = { editWithStartTime(startTime = Instant.now()) }) {
+                Text(stringResource(R.string.start_time_entry_now))
+            }
+            lastEntryStopTime?.let {
+                DropdownMenuItem(onClick = { editWithStartTime(startTime = it) }) {
+                    Text(stringResource(R.string.start_time_entry_last_stop_time))
+                }
+            }
+            // If most recent entry ended recently and there is no ongoing entry, allow the user to
+            // resume the current entry
+            if (isMostRecentEntry && !entry.isOngoing &&
+                entry.endTime?.isAfter(Instant.now().minusSeconds(60 * 60)) == true
+            ) {
+                DropdownMenuItem(onClick = {
+                    dismiss()
+                    resumeEntry?.invoke(entry)
+                }) {
+                    Text(stringResource(R.string.continue_time_entry))
+                }
             }
         }
         if (entry.isOngoing) {
-            DropdownMenuItem(onClick = { Log.d(TAG, "TODO") }) {
+            DropdownMenuItem(onClick = {
+                dismiss()
+                stopEntry?.invoke(entry)
+            }) {
                 Text(stringResource(R.string.stop_time_entry))
             }
         }
@@ -360,6 +440,7 @@ fun TimeEntryListView_Preview() {
         TimeEntryListView(
             entries = mockModel.timeEntries,
             projects = mockModel.projects,
+            entryCurrentlyOngoing = false
         )
 
     }

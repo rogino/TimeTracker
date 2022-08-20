@@ -49,7 +49,15 @@ class GodModel(
         }
     }
 
-    val currentEntry: TimeEntry? get() = timeEntries.first { it.isOngoing }
+    val currentEntry: TimeEntry? get() {
+        val first = timeEntries.firstOrNull()
+        if (first?.isOngoing == true) {
+            return first
+        }
+        return null
+    }
+
+    val mostRecentEntry: TimeEntry? get() = timeEntries.firstOrNull()
 
     fun addOrUpdate(timeEntry: TimeEntry) {
         val index = timeEntries.indexOfFirst { it.id == timeEntry.id }
@@ -63,14 +71,23 @@ class GodModel(
         entriesMap[timeEntry.id] = timeEntry
     }
 
+    fun deleteEntry(id: Long) {
+        val entry = timeEntries.find { it.id == id }
+        entry?.let {
+            timeEntries.remove(entry)
+         }
+    }
+
     fun addEntries(entries: List<TimeEntry>) {
         entries.forEach {
             entriesMap[it.id] = it
         }
 
+        var entries = entriesMap.values.toMutableList()
+        entries.sortByDescending { it.startTime }
+
         timeEntries.clear()
-        timeEntries.addAll(entriesMap.values)
-        timeEntries.sortByDescending { it.startTime }
+        timeEntries.addAll(entries)
     }
 
 

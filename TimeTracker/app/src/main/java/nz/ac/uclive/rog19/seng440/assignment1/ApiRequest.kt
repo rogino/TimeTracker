@@ -117,14 +117,25 @@ class ApiRequest {
         return null
     }
 
+    suspend fun updateTimeEntryByDeletingAndCreatingBecauseTogglV9ApiSucks(entry: TimeEntry): TimeEntry? {
+        val response = newTimeEntry(entry = entry.copy(id = null))
+        if (entry.id != null) {
+            deleteEntry(entry)
+        }
+        return response
+    }
+
     suspend fun updateTimeEntry(entry: TimeEntry): TimeEntry? {
         var url = buildUrl
             .addPathSegments("workspaces/${workspaceId}/time_entries/${entry.id}")
             .build()
         Log.d(TAG, "Update time entry(id=${entry.id})")
-        post(url, jsonConverter.toJsonString(entry).toRequestBody(jsonType), put = true)?.let {
-            Log.d(TAG, "Time entry(id=${entry.id}) updated")
-            return jsonConverter.parse<TimeEntry>(it)
+        Log.d(TAG, jsonConverter.toJsonString(entry))
+        post(url, jsonConverter.toJsonString(entry).toRequestBody(jsonType), put = true, client!!)?.let {
+            Log.d(TAG, it)
+            val entry = jsonConverter.parse<TimeEntry>(it)
+            Log.d(TAG, "Time entry(id=${entry?.id}) updated")
+            return entry
         }
         return null
     }
@@ -137,7 +148,7 @@ class ApiRequest {
             .addPathSegments("workspaces/${workspaceId}/time_entries")
             .build()
         Log.d(TAG, "Create time entry")
-        post(url, jsonConverter.toJsonString(entry).toRequestBody(jsonType))?.let {
+        post(url, jsonConverter.toJsonString(entry).toRequestBody(jsonType), put = false, client!!)?.let {
             val entry = jsonConverter.parse<TimeEntry>(it)
             Log.d(TAG, "Time entry(id = ${entry?.id}) created")
             return entry
@@ -166,6 +177,20 @@ class ApiRequest {
         return null
     }
 
+    suspend fun deleteEntry(id: Long, workspaceId: Int?) {
+        var url = buildUrl.addPathSegments(
+            "workspaces/${workspaceId ?: this.workspaceId}/time_entries/${id}"
+        ).build()
+        Log.d(TAG, "Delete time entry(id = $id) from workspace ${workspaceId ?: this.workspaceId}")
+        delete(url, client!!)
+    }
+
+    suspend fun deleteEntry(entry: TimeEntry): Boolean {
+        if (entry.id == null) return false
+
+        deleteEntry(entry.id!!, entry.workspaceId)
+        return true
+    }
 
     suspend fun getTimeEntries(
         startDate: Instant? = null,
@@ -209,22 +234,28 @@ class ApiRequest {
             .build()
 
         Log.d(TAG, "GET request to ${request.url}")
-        return handleCall(client!!.newCall(request))
+        return handleCall(client.newCall(request))
     }
 
-    private suspend fun post(url: String, body: RequestBody, put: Boolean = false): String? {
-        return url.toHttpUrlOrNull()?.let { post(it, body, put) }
+    private suspend fun post(url: String, body: RequestBody, put: Boolean = false, client: OkHttpClient): String? {
+        return url.toHttpUrlOrNull()?.let { post(it, body, put, client) }
     }
 
     /// Make HTTP POST request with Toggl credentials, the body being some JSON,
     // and return response body as string
-    private suspend fun post(url: HttpUrl, body: RequestBody, put: Boolean = false): String {
+    private suspend fun post(url: HttpUrl, body: RequestBody, put: Boolean = false, client: OkHttpClient): String {
         var builder = Builder().url(url)
         builder = if (put) builder.put(body) else builder.post(body)
         val request: Request = builder.build()
 
-        Log.d(TAG, "POST request to ${request.url}")
-        return handleCall(client!!.newCall(request))
+        Log.d(TAG, "${if (put) "PUT" else "POST"} request to ${request.url}")
+        return handleCall(client.newCall(request))
+    }
+
+    private suspend fun delete(url: HttpUrl, client: OkHttpClient): String {
+        val request = Builder().url(url).delete().build()
+        Log.d(TAG, "DELETE request to ${request.url}")
+        return handleCall(client.newCall(request))
     }
 
     private suspend fun handleCall(call: Call): String {
