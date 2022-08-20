@@ -44,11 +44,11 @@ class TimeEntryPeriod(
 ) {
     val totalDuration: Duration
         get() {
-            return entries.fold(Duration.ZERO) { total, entry: TimeEntry -> total + entry.duration }
+            return entries.fold(Duration.ZERO) { total, entry: TimeEntry -> total + (entry?.duration ?: Duration.ZERO) }
         }
 
     fun totalDuration(now: Instant): Duration {
-        return entries.fold(Duration.ZERO) { total, entry: TimeEntry -> total + entry.duration(now) }
+        return entries.fold(Duration.ZERO) { total, entry: TimeEntry -> total + (entry?.duration(now) ?: Duration.ZERO) }
     }
 
 }

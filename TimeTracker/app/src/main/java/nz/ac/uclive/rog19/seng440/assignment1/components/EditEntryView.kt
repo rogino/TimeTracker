@@ -39,6 +39,7 @@ fun EditEntryPage(
     zoneId: ZoneId = Clock.systemDefaultZone().zone,
     allowEditing: Boolean = true,
     apiRequest: ApiRequest,
+    didHaveEndTimeSet: Boolean? = null,
     goBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -63,13 +64,20 @@ fun EditEntryPage(
                     TextButton(
                         onClick = {
                             coroutineScope.launch {
-                                val payload = entry.toTimeEntry()
-                                if (payload == null) return@launch
+                                val payload = entry.toTimeEntry() ?: return@launch
                                 isSaving = true
                                 try {
-                                    val response =
-                                        if (entry.id != null) apiRequest.updateTimeEntry(payload)
-                                        else apiRequest.newTimeEntry(payload)
+                                    val response = if (payload.id == null) {
+                                        apiRequest.newTimeEntry(payload)
+                                    } else {
+                                        if (didHaveEndTimeSet == true && payload.endTime == null) {
+                                            val response = apiRequest.updateTimeEntryByDeletingAndCreatingBecauseTogglV9ApiSucks(payload)
+                                            model.deleteEntry(payload.id!!)
+                                            response
+                                        } else {
+                                            apiRequest.updateTimeEntry(payload)
+                                        }
+                                    }
                                     response?.let { entry.copyPropertiesFromEntry(response) }
                                     model.addOrUpdate(entry.toTimeEntry()!!)
                                 } finally {

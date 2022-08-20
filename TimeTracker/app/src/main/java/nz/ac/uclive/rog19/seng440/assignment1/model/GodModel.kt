@@ -145,13 +145,13 @@ val mockModel = GodModel(
     listOf(
         TimeEntry(
             10, "Entry description",
-            "2022-07-23T07:54:35+00:00", "2022-07-23T08:10:02Z",
+            "2022-07-23T07:54:35+00:00", "2022-07-23T08:10:02Z", null,
             1, listOf("Tag1", "Another Tag")
         ),
 
         TimeEntry(
             11, "Playing around with Jetpack Compose",
-            "2022-08-03T20:30:10+00:00", "2022-08-03T21:30:00Z",
+            "2022-08-03T20:30:10+00:00", "2022-08-03T21:30:00Z", null,
             3, listOf("Assignment", "Coding")
         ),
 
@@ -160,6 +160,7 @@ val mockModel = GodModel(
             "Trying to figure out why accessing legends causes scene rendering to completely fail",
             "2022-08-04T22:31:51+12:00",
             "2022-08-04T23:04:45+12:00",
+            null,
             1,
             emptyList()
         ),
@@ -172,6 +173,7 @@ val mockModel = GodModel(
                     ZoneOffset.UTC
                 )
             ),
+            null,
             null,
             3, listOf("Assignment", "Coding")
         )

@@ -51,6 +51,7 @@ class MainActivity : ComponentActivity() {
 
         val preferences = getSharedPreferences(timeTrackerPreferencesFileName, Context.MODE_PRIVATE)
         var currentlyEditedEntry = TimeEntryObservable()
+        var currentlyEditedEntryDidHaveEndTimeSet: Boolean? = null
 
         val key = preferences.getString("API_KEY", null)
         val workspaceId = preferences.getInt("DEFAULT_WORKSPACE_ID", -1)
@@ -154,6 +155,7 @@ class MainActivity : ComponentActivity() {
                                 editEntry = { entry ->
                                     currentlyEditedEntry =
                                         entry?.toObservable() ?: TimeEntryObservable()
+                                    currentlyEditedEntryDidHaveEndTimeSet = currentlyEditedEntry.endTime != null
                                     navController.navigate("edit_entry")
                                 },
                                 modifier = paddingModifier
@@ -166,6 +168,7 @@ class MainActivity : ComponentActivity() {
                                 now = now,
                                 lastEntryStopTime = lastEntryStopTime,
                                 apiRequest = apiRequest,
+                                didHaveEndTimeSet = currentlyEditedEntryDidHaveEndTimeSet,
                                 goBack = {
                                     navController.popBackStack()
                                 },

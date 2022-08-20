@@ -42,6 +42,9 @@ data class TimeEntry(
     @Json(name = "created_with")
     var createdWith: String = APP_IDENTIFIER,
 
+    @Json(name = "at")
+    var lastUpdated: Instant? = null,
+
     @Json(name = "wid")
     var workspaceId: Int? = null
 ) {
@@ -79,6 +82,7 @@ data class TimeEntry(
         description: String = "",
         startTime: String,
         endTime: String? = null,
+        lastUpdated: String? = null,
         projectId: Long? = null,
         tagNames: List<String> = emptyList(),
         workspaceId: Int? = null
@@ -86,6 +90,7 @@ data class TimeEntry(
         id = id, description = description,
         startTime = OffsetDateTime.parse(startTime).toInstant(),
         endTime = if (endTime == null) null else OffsetDateTime.parse(endTime).toInstant(),
+        lastUpdated = if (lastUpdated == null) null else OffsetDateTime.parse(lastUpdated).toInstant(),
         projectId = projectId, tagNames = tagNames,
         workspaceId = workspaceId
     )

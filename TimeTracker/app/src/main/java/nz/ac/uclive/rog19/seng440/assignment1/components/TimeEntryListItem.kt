@@ -108,7 +108,8 @@ fun TimeEntryListItem(
                 }
             }
 
-            Row(horizontalArrangement = Arrangement.Start,
+            Row(
+                horizontalArrangement = Arrangement.Start,
                 modifier = Modifier.weight(1f)
             ) {
                 timeEntry.tagNames?.let {

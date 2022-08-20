@@ -117,6 +117,8 @@ class ApiRequest {
         return null
     }
 
+    // api/v9/me/time_entries/current is set, but the end time is the previously set value, regardless
+    // of if end time is not sent or is sent as null
     suspend fun updateTimeEntryByDeletingAndCreatingBecauseTogglV9ApiSucks(entry: TimeEntry): TimeEntry? {
         val response = newTimeEntry(entry = entry.copy(id = null))
         if (entry.id != null) {
