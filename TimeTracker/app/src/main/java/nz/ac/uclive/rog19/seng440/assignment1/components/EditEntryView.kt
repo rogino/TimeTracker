@@ -11,19 +11,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.insets.ui.TopAppBar
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import nz.ac.uclive.rog19.seng440.assignment1.ApiRequest
 import nz.ac.uclive.rog19.seng440.assignment1.R
-import nz.ac.uclive.rog19.seng440.assignment1.model.GodModel
-import nz.ac.uclive.rog19.seng440.assignment1.model.Project
-import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntryObservable
-import nz.ac.uclive.rog19.seng440.assignment1.model.mockModel
+import nz.ac.uclive.rog19.seng440.assignment1.makeRequestsShowingToastOnError
+import nz.ac.uclive.rog19.seng440.assignment1.model.*
 import nz.ac.uclive.rog19.seng440.assignment1.newlineEtAlRegex
 import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.TimeTrackerTheme
 import java.time.Clock
@@ -45,7 +45,49 @@ fun EditEntryPage(
 ) {
     val canSave = entry.startTime != null && entry.startTime!!.isBefore(entry.endTime ?: now.value)
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
     var isSaving by remember { mutableStateOf(false) }
+
+    fun save(payload: TimeEntry) {
+        isSaving = true
+        makeRequestsShowingToastOnError(coroutineScope, context, { isSaving = false }, {
+            if (payload.id == null) {
+                apiRequest.newTimeEntry(payload)
+            } else {
+                val response = if (didHaveEndTimeSet == true && payload.endTime == null) {
+                    val res = apiRequest.updateTimeEntryByDeletingAndCreatingBecauseTogglV9ApiSucks(
+                        payload
+                    )
+                    model.deleteEntry(payload.id!!)
+                    res
+                } else {
+                    apiRequest.updateTimeEntry(payload)
+                }
+                response?.let { entry.copyPropertiesFromEntry(response) }
+                model.addOrUpdate(entry.toTimeEntry()!!)
+                withContext(Dispatchers.Main) {
+                    goBack()
+                }
+            }
+        })
+//        coroutineScope.launch {
+//            isSaving = true
+//            try {
+//                val response = withContext(Dispatchers.IO) {
+//                    }
+//                }
+//                response?.let { entry.copyPropertiesFromEntry(response) }
+//                model.addOrUpdate(entry.toTimeEntry()!!)
+//                goBack()
+//            } catch(err: Throwable) {
+//                Log.d(TAG, "!!!!!!!!!!")
+//                Log.d(TAG, err.stackTraceToString())
+//            }
+//            finally {
+//                isSaving = false
+//            }
+//        }
+    }
 
     Scaffold(
         topBar = {
@@ -62,30 +104,8 @@ fun EditEntryPage(
                 },
                 actions = {
                     TextButton(
-                        onClick = {
-                            coroutineScope.launch {
-                                val payload = entry.toTimeEntry() ?: return@launch
-                                isSaving = true
-                                try {
-                                    val response = if (payload.id == null) {
-                                        apiRequest.newTimeEntry(payload)
-                                    } else {
-                                        if (didHaveEndTimeSet == true && payload.endTime == null) {
-                                            val response = apiRequest.updateTimeEntryByDeletingAndCreatingBecauseTogglV9ApiSucks(payload)
-                                            model.deleteEntry(payload.id!!)
-                                            response
-                                        } else {
-                                            apiRequest.updateTimeEntry(payload)
-                                        }
-                                    }
-                                    response?.let { entry.copyPropertiesFromEntry(response) }
-                                    model.addOrUpdate(entry.toTimeEntry()!!)
-                                } finally {
-                                    isSaving = false
-                                }
-                                goBack()
-                            }
-                        }, enabled = canSave && allowEditing && !isSaving,
+                        onClick = { save(entry.toTimeEntry()!!) },
+                        enabled = canSave && allowEditing && !isSaving,
                         colors = ButtonDefaults.buttonColors(
                             contentColor = Color.White,
                             disabledContentColor = Color.Unspecified.copy(alpha = 0.6f),
@@ -93,7 +113,10 @@ fun EditEntryPage(
                             disabledBackgroundColor = Color.Transparent
                         )
                     ) {
-                        Text(text = stringResource(R.string.save), style = MaterialTheme.typography.body1)
+                        Text(
+                            text = stringResource(R.string.save),
+                            style = MaterialTheme.typography.body1
+                        )
                     }
                 },
                 contentPadding = WindowInsets.statusBars.asPaddingValues()
@@ -108,8 +131,23 @@ fun EditEntryPage(
             allTags = model.tags,
             now = now,
             zoneId = zoneId,
-            allowEditing = allowEditing,
+            allowEditing = allowEditing && !isSaving,
+            isSaving = isSaving,
             isCurrentOrNewestTimeEntry = entry.isOngoing || model.timeEntries.first().id == entry.id,
+            stopAndSaveEntry = {
+                save(it)
+            },
+            deleteEntry = { id ->
+                if (isSaving) return@EditEntryView
+                isSaving = true
+                makeRequestsShowingToastOnError(coroutineScope, context, { isSaving = false }, {
+                    apiRequest?.deleteEntry(id, entry.workspaceId)
+                    model.deleteEntry(id)
+                    withContext(Dispatchers.Main) {
+                        goBack()
+                    }
+                })
+            },
             modifier = modifier,
         )
     }
@@ -125,12 +163,24 @@ fun EditEntryView(
     now: State<Instant> = mutableStateOf(Instant.now()),
     zoneId: ZoneId = Clock.systemDefaultZone().zone,
     allowEditing: Boolean = true,
+    isSaving: Boolean = true,
     isCurrentOrNewestTimeEntry: Boolean,
+    stopAndSaveEntry: (TimeEntry) -> Unit,
+    deleteEntry: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         val focusManager = LocalFocusManager.current
 
+        Row(
+            modifier = Modifier
+                .height(10.dp)
+                .fillMaxWidth(), verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (isSaving) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            }
+        }
         OutlinedTextField(
             value = entry.description,
             label = { Text(text = stringResource(R.string.description)) },
@@ -182,6 +232,38 @@ fun EditEntryView(
             setDate = { entry.endTime = it },
             allowEditing = allowEditing,
         )
+
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            if (entry.id != null) {
+                Button(
+                    onClick = { deleteEntry(entry.id!!) },
+                    enabled = allowEditing,
+                    colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.error)
+                ) {
+                    Text(stringResource(R.string.delete_time_entry))
+                }
+            }
+            if (entry.id != null && isCurrentOrNewestTimeEntry && !entry.isOngoing) {
+                Button(
+                    onClick = {
+                        stopAndSaveEntry(entry.toTimeEntry()!!.copy(endTime = null))
+                    },
+                    enabled = allowEditing,
+                ) {
+                    Text(stringResource(R.string.continue_time_entry))
+                }
+            }
+            if (entry.isOngoing) {
+                Button(
+                    onClick = {
+                        stopAndSaveEntry(entry.toTimeEntry()!!.copy(endTime = Instant.now()))
+                    },
+                    enabled = allowEditing,
+                ) {
+                    Text(stringResource(R.string.stop_time_entry))
+                }
+            }
+        }
     }
 }
 

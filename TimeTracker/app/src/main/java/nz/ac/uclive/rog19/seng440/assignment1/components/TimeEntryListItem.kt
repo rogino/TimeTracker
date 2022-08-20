@@ -86,6 +86,7 @@ fun TimeEntryListItem(
                     text = durationText,
                     maxLines = 1,
                     modifier = Modifier.width(IntrinsicSize.Max)
+                        .padding(start = 6.dp)
                 )
             }
         }
@@ -128,7 +129,6 @@ fun TimeEntryListItem(
                 maxLines = 1,
                 overflow = TextOverflow.Visible,
                 modifier = Modifier
-                    .padding(start = 8.dp)
                     .width(IntrinsicSize.Max)
             )
         }
