@@ -46,9 +46,11 @@ fun EditEntryPage(
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     var isSaving by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
 
     fun save(payload: TimeEntry) {
         isSaving = true
+        focusManager.clearFocus()
         makeRequestsShowingToastOnError(coroutineScope, context, { isSaving = false }, {
             if (payload.id == null) {
                 apiRequest.newTimeEntry(payload)
@@ -81,6 +83,7 @@ fun EditEntryPage(
                 },
                 navigationIcon = {
                     IconButton(onClick = { goBack() }) {
+                        focusManager.clearFocus()
                         Icon(Icons.Filled.ArrowBack, stringResource(R.string.back))
                     }
                 },
@@ -105,7 +108,6 @@ fun EditEntryPage(
             )
         },
     ) {
-        val howDoIGetThisErrorToGoAway = it
         EditEntryView(
             entry = entry,
             lastEntryStopTime = lastEntryStopTime,
@@ -122,6 +124,7 @@ fun EditEntryPage(
             deleteEntry = { id ->
                 if (isSaving) return@EditEntryView
                 isSaving = true
+                focusManager.clearFocus()
                 makeRequestsShowingToastOnError(coroutineScope, context, { isSaving = false }, {
                     apiRequest?.deleteEntry(id, entry.workspaceId)
                     model.deleteEntry(id)
@@ -130,7 +133,7 @@ fun EditEntryPage(
                     }
                 })
             },
-            modifier = modifier.padding(contentPadding),
+            modifier = modifier.padding(contentPadding).padding(it),
         )
     }
 }
