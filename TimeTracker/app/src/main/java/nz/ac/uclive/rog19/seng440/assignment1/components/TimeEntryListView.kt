@@ -3,12 +3,15 @@ package nz.ac.uclive.rog19.seng440.assignment1
 import android.content.Context
 import android.util.Log
 import android.widget.Toast
-import androidx.compose.foundation.*
+import androidx.compose.animation.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
@@ -20,10 +23,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.min
 import androidx.compose.ui.unit.sp
 import com.google.accompanist.insets.ui.TopAppBar
 import com.google.accompanist.swiperefresh.SwipeRefresh
@@ -140,44 +143,57 @@ fun TimeEntryListPage(
                 }
             },
             contentPadding = WindowInsets.statusBars.asPaddingValues()
-        )}, floatingActionButton = {
-            if (model.currentEntry == null) {
-                FloatingActionButton(onClick = { editEntry?.invoke(null) }) {
-                    Icon(
-                        Icons.Outlined.Add,
-                        contentDescription = stringResource(R.string.create_time_entry)
-                    )
-                }
+        )
+    }, floatingActionButton = {
+        val width = with(LocalDensity.current) { 100.dp.roundToPx() }
+        AnimatedVisibility(visible = model.currentEntry == null,
+            enter = slideInHorizontally { width } + fadeIn(),
+            exit = slideOutHorizontally { width } + fadeOut()
+        ) {
+            FloatingActionButton(onClick = { editEntry?.invoke(null) }) {
+                Icon(
+                    Icons.Outlined.Add,
+                    contentDescription = stringResource(R.string.create_time_entry)
+                )
             }
-        }, bottomBar = {
-        model.currentEntry?.let {
-            Column(modifier = Modifier.clickable {
-                editEntry?.invoke(it)
-            }) {
-                val bottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-                Divider(modifier = Modifier.border(2.dp, MaterialTheme.colors.secondary), thickness = 2.dp)
+        }
+    }, bottomBar = {
+        val currentEntry = model.currentEntry
+        val height = with(LocalDensity.current) { 100.dp.roundToPx() }
+        AnimatedVisibility(visible = currentEntry != null,
+        enter = slideInVertically { height } + fadeIn(),
+        exit = slideOutVertically { height } + fadeOut()
+        ) {
+            val bottomPadding =
+                WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+            Column(modifier = Modifier
+                .clickable {
+                    editEntry?.invoke(currentEntry)
+                }
+            ) {
+                Divider(color = MaterialTheme.colors.secondary, thickness = 2.dp)
                 TimeEntryListItem(
-                    timeEntry = it,
+                    timeEntry = currentEntry ?: TimeEntry(),
                     projects = model.projects,
                     now = now,
                     zoneId = zoneId,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .background(color = MaterialTheme.colors.background)
                         .padding(horizontal = contentPadding.horizontal)
-                        .padding(bottom = bottomPadding, top = min(8.dp, bottomPadding * 0.4f))
+                        .padding(bottom = bottomPadding, top = 6.dp),
                 )
             }
-         }
+        }
     }) {
         var isRefreshing by remember { mutableStateOf(false) }
         var currentlyUpdatingEntry by remember { mutableStateOf(false) }
         var coroutineScope = rememberCoroutineScope()
         val context = LocalContext.current
 
-        Box(modifier = Modifier
-            .fillMaxSize()
-            .padding(bottom = it.calculateBottomPadding())) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = it.calculateBottomPadding())
+        ) {
             SwipeRefresh(
                 state = rememberSwipeRefreshState(isRefreshing = isRefreshing),
                 onRefresh = {

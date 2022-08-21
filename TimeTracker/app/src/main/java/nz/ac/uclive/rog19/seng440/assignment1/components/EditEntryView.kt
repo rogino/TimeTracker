@@ -78,7 +78,7 @@ fun EditEntryPage(
             TopAppBar(
                 title = {
                     Text(
-                        text = stringResource(if (entry.isOngoing) R.string.create_time_entry else R.string.edit_time_entry)
+                        text = stringResource(if (entry.isOngoing) R.string.edit_time_entry else R.string.create_time_entry)
                     )
                 },
                 navigationIcon = {
