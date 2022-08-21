@@ -45,5 +45,7 @@
     <string name="cancel">キャンセル</string>
     <string name="ok">Ok</string>
     <string name="now">現在</string>
-    <string name="last_stop_time">最後の終了時刻</string>
+    <string name="last_stop_time">最新の終了時刻</string>
+    <string name="login_page_title">Toggl Track へのログイン</string>
+    <string name="total_group_duration">作業時間 %1$s</string>
 </resources>
