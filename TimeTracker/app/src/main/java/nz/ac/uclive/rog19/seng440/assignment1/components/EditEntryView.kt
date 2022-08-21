@@ -133,7 +133,9 @@ fun EditEntryPage(
                     }
                 })
             },
-            modifier = modifier.padding(contentPadding).padding(it),
+            modifier = modifier
+                .padding(contentPadding)
+                .padding(it),
         )
     }
 }
@@ -154,8 +156,14 @@ fun EditEntryView(
     deleteEntry: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val focusManager = LocalFocusManager.current
+
+    val selectedRowColor = blendColors(
+        MaterialTheme.colors.primary,
+        MaterialTheme.colors.background,
+        0.2f
+    )
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        val focusManager = LocalFocusManager.current
 
         Row(
             modifier = Modifier
@@ -184,6 +192,7 @@ fun EditEntryView(
             selectedProjectId = entry.projectId,
             projectSelected = { entry.projectId = it },
             projects = projects,
+            selectedRowColor = selectedRowColor,
             allowEditing = allowEditing
         )
 
@@ -192,7 +201,9 @@ fun EditEntryView(
             tagToggled = { tagName, add ->
                 if (add) entry.tagNames.add(tagName)
                 else entry.tagNames.remove(tagName)
-            }, allTags = allTags,
+            },
+            allTags = allTags,
+            selectedRowColor = selectedRowColor,
             allowEditing = allowEditing
         )
 
@@ -259,6 +270,16 @@ class UnelevatedButtonElevation : ButtonElevation {
     }
 }
 
+/// Linear blend of colors. Gamma? What's that?
+fun blendColors(c1: Color, c2: Color, t: Float): Color {
+    val t1 = 1 - t
+    return Color(
+        red = c1.red * t + c2.red * t1,
+        green = c1.green * t + c2.green * t1,
+        blue = c1.blue * t + c2.blue * t1,
+        alpha = c1.alpha * t + c2.alpha * t1
+    )
+}
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -267,6 +288,7 @@ fun SelectProjectDropdown(
     projectSelected: (Long?) -> Unit,
     projects: Map<Long, Project>,
     allowEditing: Boolean = true,
+    selectedRowColor: Color = Color.LightGray,
     listOpen: MutableState<Boolean> = remember { mutableStateOf(false) }
 ) {
     ExposedDropdownMenuBox(
@@ -310,7 +332,7 @@ fun SelectProjectDropdown(
                         listOpen.value = false
                     },
                     modifier = Modifier.background(
-                        color = if (isSelected) Color.LightGray else Color.Unspecified
+                        color = if (isSelected) selectedRowColor else Color.Unspecified
                     )
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -334,6 +356,7 @@ fun SelectTagsDropdown(
     tagToggled: (String, Boolean) -> Unit,
     allTags: Collection<String>,
     allowEditing: Boolean = true,
+    selectedRowColor: Color = Color.LightGray,
     listOpen: MutableState<Boolean> = remember { mutableStateOf(false) }
 ) {
     ExposedDropdownMenuBox(
@@ -373,7 +396,7 @@ fun SelectTagsDropdown(
                         }
                     },
                     modifier = Modifier.background(
-                        color = if (isSelected) MaterialTheme.colors.onSecondary else Color.Unspecified
+                        color = if (isSelected) selectedRowColor else Color.Unspecified
                     )
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
