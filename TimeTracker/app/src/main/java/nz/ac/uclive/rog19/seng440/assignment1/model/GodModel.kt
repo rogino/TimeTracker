@@ -3,12 +3,10 @@ package nz.ac.uclive.rog19.seng440.assignment1.model
 import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.snapshots.SnapshotStateList
-import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.runtime.toMutableStateList
 import androidx.lifecycle.ViewModel
-import nz.ac.uclive.rog19.seng440.assignment1.TAG
-import java.sql.Time
+import kotlinx.coroutines.CoroutineScope
+import nz.ac.uclive.rog19.seng440.assignment1.*
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
@@ -49,13 +47,14 @@ class GodModel(
         }
     }
 
-    val currentEntry: TimeEntry? get() {
-        val first = timeEntries.firstOrNull()
-        if (first?.isOngoing == true) {
-            return first
+    val currentEntry: TimeEntry?
+        get() {
+            val first = timeEntries.firstOrNull()
+            if (first?.isOngoing == true) {
+                return first
+            }
+            return null
         }
-        return null
-    }
 
     val mostRecentEntry: TimeEntry? get() = timeEntries.firstOrNull()
 
@@ -75,7 +74,7 @@ class GodModel(
         val entry = timeEntries.find { it.id == id }
         entry?.let {
             timeEntries.remove(entry)
-         }
+        }
     }
 
     fun addEntries(entries: List<TimeEntry>) {
@@ -91,10 +90,70 @@ class GodModel(
     }
 
 
+    fun refreshEverything(
+        coroutineScope: CoroutineScope,
+        apiRequest: ApiRequest,
+        onEnd: (Throwable?) -> Unit
+    ) {
+        makeConcurrentRequests(coroutineScope = coroutineScope,
+            { onEnd(it) },
+            {
+                apiRequest?.getTimeEntries(
+                    startDate = Instant.now().minusDays(7),
+                    endDate = Instant.now().plusDays(1)
+                )?.let { addEntries(it) }
+            },
+            {
+                apiRequest?.getProjects()?.let {
+                    setProjects(it)
+                }
+            },
+            {
+                apiRequest?.getStringTags()?.let {
+                    tags.clear()
+                    tags.addAll(it)
+                }
+            }
+        )
+    }
+
+
+    /// Returns that most recent stopped entry if one exists within the given time period
+    /// - Parameter currentlyEditedEntryId: if this is the most recent entry, it will return the
+    /// stop time for the second most recent entry
+    fun lastEntryStopTime(currentlyEditedEntryId: Long?, withinLastNDays: Long = 1): Instant? {
+        val mostRecent = timeEntries.firstOrNull()
+        var lastEntryStopTime: Instant? = null
+
+        if (currentlyEditedEntryId == null && mostRecent != null) {
+            lastEntryStopTime = mostRecent.endTime
+        } else if (currentlyEditedEntryId == mostRecent?.id && timeEntries.count() >= 2) {
+            lastEntryStopTime = timeEntries[1].endTime
+        }
+        if (lastEntryStopTime?.isBefore(Instant.now().minusDays(withinLastNDays)) == true) {
+            // Max age of 1 day
+            lastEntryStopTime = null
+        }
+
+        return lastEntryStopTime
+    }
+
+    fun setTags(tags: List<String>) {
+        this.tags.clear()
+        this.tags.addAll(tags)
+    }
+
     fun setProjects(projects: List<Project>) {
         this.projects.clear()
         this.projects.putAll(projects.associateBy { it.id })
     }
+
+    /// Must be in order already
+    fun setEntries(entries: List<TimeEntry>) {
+        timeEntries.clear()
+        timeEntries.addAll(entries)
+    }
+
 
     /// - Parameter timeEntries: time entries sorted by start time, newest first
 //    fun addContiguousEntries(timeEntries: List<TimeEntry>) {

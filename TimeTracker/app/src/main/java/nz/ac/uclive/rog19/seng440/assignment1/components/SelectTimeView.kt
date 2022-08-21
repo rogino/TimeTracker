@@ -64,7 +64,7 @@ fun SelectTimeView(
     )
     val buttonBorder = BorderStroke(
         ButtonDefaults.outlinedBorder.width,
-        MaterialTheme.colors.secondary
+        ButtonDefaults.outlinedBorder.brush
     )
 
     fun toggleExpand() {

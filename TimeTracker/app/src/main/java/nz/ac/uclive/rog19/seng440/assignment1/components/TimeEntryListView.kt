@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.sp
 import com.google.accompanist.insets.ui.TopAppBar
 import com.google.accompanist.swiperefresh.SwipeRefresh
@@ -124,12 +125,13 @@ fun OverflowMenu(content: @Composable () -> Unit) {
 fun TimeEntryListPage(
     modifier: Modifier = Modifier,
     model: GodModel,
-    lastEntryStopTime: Instant? = null,
+    lastEntryStopTime: (() -> Instant?)? = null,
     zoneId: ZoneId = Clock.systemDefaultZone().zone,
     now: State<Instant> = mutableStateOf(Instant.now()),
     apiRequest: ApiRequest? = null,
     logout: (() -> Unit)? = null,
     editEntry: ((TimeEntry?) -> Unit)? = null,
+    isRefreshing: MutableState<Boolean> = mutableStateOf(false),
     contentPadding: PaddingValues = PaddingValues()
 ) {
     Scaffold(topBar = {
@@ -164,8 +166,10 @@ fun TimeEntryListPage(
         enter = slideInVertically { height } + fadeIn(),
         exit = slideOutVertically { height } + fadeOut()
         ) {
-            val bottomPadding =
-                WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+            val bottomPadding = max(
+                WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
+                10.dp
+            )
             Column(modifier = Modifier
                 .clickable {
                     editEntry?.invoke(currentEntry)
@@ -184,7 +188,6 @@ fun TimeEntryListPage(
             }
         }
     }) {
-        var isRefreshing by remember { mutableStateOf(false) }
         var currentlyUpdatingEntry by remember { mutableStateOf(false) }
         var coroutineScope = rememberCoroutineScope()
         val context = LocalContext.current
@@ -195,32 +198,17 @@ fun TimeEntryListPage(
                 .padding(bottom = it.calculateBottomPadding())
         ) {
             SwipeRefresh(
-                state = rememberSwipeRefreshState(isRefreshing = isRefreshing),
+                state = rememberSwipeRefreshState(isRefreshing = isRefreshing.value),
                 onRefresh = {
-                    isRefreshing = true
-                    makeRequestsShowingToastOnError(
-                        coroutineScope,
-                        context,
-                        { isRefreshing = false },
-                        {
-                            apiRequest?.getTimeEntries(
-                                startDate = Instant.now()
-                                    .minusSeconds(60 * 60 * 24 * 7),
-                                endDate = Instant.now().plusSeconds(60 * 60 * 24)
-                            )?.let { model.addEntries(it) }
-                        },
-                        {
-                            apiRequest?.getProjects()?.let {
-                                model.setProjects(it)
+                    apiRequest?.let { apiRequest ->
+                        isRefreshing.value = true
+                        model.refreshEverything(coroutineScope = coroutineScope, apiRequest = apiRequest, onEnd = {
+                            isRefreshing.value = false
+                            it?.let {
+                                showErrorToast(context = context, error = it)
                             }
-                        },
-                        {
-                            apiRequest?.getStringTags()?.let {
-                                model.tags.clear()
-                                model.tags.addAll(it)
-                            }
-                        }
-                    )
+                        })
+                    }
                 },
                 indicator = { state, trigger ->
                     SwipeRefreshIndicator(
@@ -311,39 +299,13 @@ fun TimeEntryListPage(
     }
 }
 
-fun makeRequestsShowingToastOnError(
-    coroutineScope: CoroutineScope,
-    context: Context,
-    onEnd: ((Boolean) -> Unit)?,
-    vararg apiCalls: (suspend () -> Unit)
-) {
-    coroutineScope.launch {
-        try {
-            supervisorScope {
-                withContext(Dispatchers.IO) {
-                    apiCalls.map { async { it() } }.awaitAll()
-                }
-            }
-            onEnd?.invoke(true)
-        } catch (err: Throwable) {
-            onEnd?.invoke(false)
-            Log.d(TAG, err.stackTraceToString())
-            Toast.makeText(
-                context,
-                err.message ?: err.toString(),
-                Toast.LENGTH_LONG
-            ).show()
-        }
-    }
-}
-
 @Composable
 fun TimeEntryListView(
     modifier: Modifier = Modifier,
     entries: SnapshotStateList<TimeEntry>,
     projects: SnapshotStateMap<Long, Project>,
     entryCurrentlyOngoing: Boolean,
-    lastEntryStopTime: Instant? = null,
+    lastEntryStopTime: (() -> Instant?)? = null,
     zoneId: ZoneId = Clock.systemDefaultZone().zone,
     now: State<Instant> = mutableStateOf(Instant.now()),
     contentPadding: PaddingValues = PaddingValues(),
@@ -426,7 +388,7 @@ fun TimeEntryListView(
 @Composable
 fun TimeEntryListItemDropdownMenu(
     entry: TimeEntry,
-    lastEntryStopTime: Instant?,
+    lastEntryStopTime: (() -> Instant?)? = null,
     expanded: Boolean,
     /// The user already hsa an ongoing entry
     entryCurrentlyOngoing: Boolean,
@@ -448,7 +410,7 @@ fun TimeEntryListItemDropdownMenu(
             DropdownMenuItem(onClick = { editWithStartTime(startTime = Instant.now()) }) {
                 Text(stringResource(R.string.start_time_entry_now))
             }
-            lastEntryStopTime?.let {
+            lastEntryStopTime?.invoke()?.let {
                 DropdownMenuItem(onClick = { editWithStartTime(startTime = it) }) {
                     Text(stringResource(R.string.start_time_entry_last_stop_time))
                 }

@@ -1,12 +1,17 @@
 package nz.ac.uclive.rog19.seng440.assignment1
 
+import android.content.Context
+import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.*
 import java.time.Duration
+import java.time.Instant
 
 /// Log.d(A, "some message")
 val TAG = "GodModel"
@@ -80,3 +85,63 @@ fun PaddingValues(horizontal: Dp = 0.dp, top: Dp = 0.dp, bottom: Dp = 0.dp): Pad
 
 val PaddingValues.horizontal: Dp
     get() = (calculateStartPadding(LayoutDirection.Ltr) + calculateEndPadding(LayoutDirection.Ltr)) / 2
+
+fun Instant.minusDays(days: Long): Instant {
+    return this.minusSeconds(60 * 60 * 24 * days)
+}
+fun Instant.minusDays(days: Float): Instant {
+    return this.minusSeconds((60f * 60f * 24f * days).toLong())
+}
+fun Instant.plusDays(days: Long): Instant {
+    return this.plusSeconds(60 * 60 * 24 * days)
+}
+fun Instant.plusDays(days: Float): Instant {
+    return this.plusSeconds((60f * 60f * 24f * days).toLong())
+}
+
+
+
+
+fun makeConcurrentRequests(
+    coroutineScope: CoroutineScope,
+    onEnd: ((Throwable?) -> Unit)?,
+    vararg apiCalls: (suspend () -> Unit)
+) {
+    coroutineScope.launch {
+        try {
+            supervisorScope {
+                withContext(Dispatchers.IO) {
+                    apiCalls.map { async { it() } }.awaitAll()
+                }
+            }
+            onEnd?.invoke(null)
+        } catch (err: Throwable) {
+            onEnd?.invoke(err)
+        }
+    }
+}
+
+fun showErrorToast(context: Context, error: Throwable) {
+    Log.d(TAG, error.stackTraceToString())
+    Toast.makeText(
+        context,
+        error.message ?: error.toString(),
+        Toast.LENGTH_LONG
+    ).show()
+}
+
+fun makeRequestsShowingToastOnError(
+    coroutineScope: CoroutineScope,
+    context: Context,
+    onEnd: ((Boolean) -> Unit)?,
+    vararg apiCalls: (suspend () -> Unit)
+) {
+    makeConcurrentRequests(
+        coroutineScope = coroutineScope,
+        onEnd = {
+            onEnd?.invoke(it == null)
+            it?.let { showErrorToast(context = context, error = it) }
+        },
+        apiCalls = apiCalls
+    )
+}

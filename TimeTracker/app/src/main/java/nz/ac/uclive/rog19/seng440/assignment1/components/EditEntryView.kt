@@ -31,7 +31,6 @@ import java.time.ZoneId
 @Composable
 fun EditEntryPage(
     entry: TimeEntryObservable = remember { TimeEntryObservable() },
-    lastEntryStopTime: Instant? = null,
     model: GodModel,
     now: State<Instant> = mutableStateOf(Instant.now()),
     zoneId: ZoneId = Clock.systemDefaultZone().zone,
@@ -78,12 +77,14 @@ fun EditEntryPage(
             TopAppBar(
                 title = {
                     Text(
-                        text = stringResource(if (entry.isOngoing) R.string.edit_time_entry else R.string.create_time_entry)
+                        text = stringResource(if (entry.id != null) R.string.edit_time_entry else R.string.create_time_entry)
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { goBack() }) {
+                    IconButton(onClick = {
                         focusManager.clearFocus()
+                        goBack()
+                    }) {
                         Icon(Icons.Filled.ArrowBack, stringResource(R.string.back))
                     }
                 },
@@ -110,7 +111,7 @@ fun EditEntryPage(
     ) {
         EditEntryView(
             entry = entry,
-            lastEntryStopTime = lastEntryStopTime,
+            lastEntryStopTime = model.lastEntryStopTime(entry.id),
             projects = model.projects,
             allTags = model.tags,
             now = now,
