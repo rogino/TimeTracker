@@ -3,16 +3,15 @@ package nz.ac.uclive.rog19.seng440.assignment1
 import android.content.Context
 import android.util.Log
 import android.widget.Toast
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
@@ -24,9 +23,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.min
 import androidx.compose.ui.unit.sp
 import com.google.accompanist.insets.ui.TopAppBar
 import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.SwipeRefreshIndicator
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import kotlinx.coroutines.*
 import nz.ac.uclive.rog19.seng440.assignment1.model.GodModel
@@ -44,11 +45,15 @@ class TimeEntryPeriod(
 ) {
     val totalDuration: Duration
         get() {
-            return entries.fold(Duration.ZERO) { total, entry: TimeEntry -> total + (entry?.duration ?: Duration.ZERO) }
+            return entries.fold(Duration.ZERO) { total, entry: TimeEntry ->
+                total + (entry?.duration ?: Duration.ZERO)
+            }
         }
 
     fun totalDuration(now: Instant): Duration {
-        return entries.fold(Duration.ZERO) { total, entry: TimeEntry -> total + (entry?.duration(now) ?: Duration.ZERO) }
+        return entries.fold(Duration.ZERO) { total, entry: TimeEntry ->
+            total + (entry?.duration(now) ?: Duration.ZERO)
+        }
     }
 
 }
@@ -121,7 +126,8 @@ fun TimeEntryListPage(
     now: State<Instant> = mutableStateOf(Instant.now()),
     apiRequest: ApiRequest? = null,
     logout: (() -> Unit)? = null,
-    editEntry: ((TimeEntry?) -> Unit)? = null
+    editEntry: ((TimeEntry?) -> Unit)? = null,
+    contentPadding: PaddingValues = PaddingValues()
 ) {
     Scaffold(topBar = {
         TopAppBar(
@@ -134,16 +140,44 @@ fun TimeEntryListPage(
                 }
             },
             contentPadding = WindowInsets.statusBars.asPaddingValues()
-        )
+        )}, floatingActionButton = {
+            if (model.currentEntry == null) {
+                FloatingActionButton(onClick = { editEntry?.invoke(null) }) {
+                    Icon(
+                        Icons.Outlined.Add,
+                        contentDescription = stringResource(R.string.create_time_entry)
+                    )
+                }
+            }
+        }, bottomBar = {
+        model.currentEntry?.let {
+            Column(modifier = Modifier.clickable {
+                editEntry?.invoke(it)
+            }) {
+                val bottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+                Divider(modifier = Modifier.border(2.dp, MaterialTheme.colors.secondary), thickness = 2.dp)
+                TimeEntryListItem(
+                    timeEntry = it,
+                    projects = model.projects,
+                    now = now,
+                    zoneId = zoneId,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(color = MaterialTheme.colors.background)
+                        .padding(horizontal = contentPadding.horizontal)
+                        .padding(bottom = bottomPadding, top = min(8.dp, bottomPadding * 0.4f))
+                )
+            }
+         }
     }) {
-        val howDoIGetThisErrorToGoAway = it
-
         var isRefreshing by remember { mutableStateOf(false) }
         var currentlyUpdatingEntry by remember { mutableStateOf(false) }
         var coroutineScope = rememberCoroutineScope()
         val context = LocalContext.current
 
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .padding(bottom = it.calculateBottomPadding())) {
             SwipeRefresh(
                 state = rememberSwipeRefreshState(isRefreshing = isRefreshing),
                 onRefresh = {
@@ -171,6 +205,15 @@ fun TimeEntryListPage(
                             }
                         }
                     )
+                },
+                indicator = { state, trigger ->
+                    SwipeRefreshIndicator(
+                        state = state,
+                        refreshTriggerDistance = trigger,
+                        scale = true,
+                        contentColor = MaterialTheme.colors.secondary,
+                        backgroundColor = MaterialTheme.colors.background,
+                    )
                 }) {
                 if (model.timeEntries.isNotEmpty()) {
                     TimeEntryListView(
@@ -181,6 +224,7 @@ fun TimeEntryListPage(
                         lastEntryStopTime = lastEntryStopTime,
                         zoneId = zoneId,
                         now = now,
+                        contentPadding = contentPadding,
                         editEntry = editEntry,
                         stopEntry = { entry ->
                             currentlyUpdatingEntry = true
@@ -286,6 +330,7 @@ fun TimeEntryListView(
     lastEntryStopTime: Instant? = null,
     zoneId: ZoneId = Clock.systemDefaultZone().zone,
     now: State<Instant> = mutableStateOf(Instant.now()),
+    contentPadding: PaddingValues = PaddingValues(),
     editEntry: ((TimeEntry?) -> Unit)? = null,
     stopEntry: ((TimeEntry) -> Unit)? = null,
     resumeEntry: ((TimeEntry) -> Unit)? = null,
@@ -301,7 +346,8 @@ fun TimeEntryListView(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = if (i == 0) 0.dp else 14.dp, bottom = 6.dp),
+                        .padding(top = if (i == 0) contentPadding.top else 14.dp, bottom = 6.dp)
+                        .padding(horizontal = contentPadding.horizontal),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Bottom
                 ) {
@@ -321,7 +367,7 @@ fun TimeEntryListView(
             // should only ever be one entry without an ID
             items(items = group.entries, key = { it.id ?: -1000 }) { entry ->
                 Divider()
-                Box {
+                Box(modifier = Modifier.padding(horizontal = contentPadding.horizontal)) {
                     var dropdownOpen by remember(entry.id ?: -1000) { mutableStateOf(false) }
                     TimeEntryListItem(
                         timeEntry = entry,
@@ -427,7 +473,10 @@ fun GroupDurationText(
         Pair(group.totalDuration, 2)
     }
     Text(
-        text = stringResource(id = R.string.total_group_duration, durationFormatter(totalDuration, numComponents = numComponents)),
+        text = stringResource(
+            id = R.string.total_group_duration,
+            durationFormatter(totalDuration, numComponents = numComponents)
+        ),
         modifier = modifier
     )
 }

@@ -20,11 +20,9 @@ import androidx.compose.ui.unit.dp
 import com.google.accompanist.insets.ui.TopAppBar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import nz.ac.uclive.rog19.seng440.assignment1.ApiRequest
+import nz.ac.uclive.rog19.seng440.assignment1.*
 import nz.ac.uclive.rog19.seng440.assignment1.R
-import nz.ac.uclive.rog19.seng440.assignment1.makeRequestsShowingToastOnError
 import nz.ac.uclive.rog19.seng440.assignment1.model.*
-import nz.ac.uclive.rog19.seng440.assignment1.newlineEtAlRegex
 import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.AppTheme
 import java.time.Clock
 import java.time.Instant
@@ -41,6 +39,7 @@ fun EditEntryPage(
     apiRequest: ApiRequest,
     didHaveEndTimeSet: Boolean? = null,
     goBack: () -> Unit,
+    contentPadding: PaddingValues = PaddingValues(),
     modifier: Modifier = Modifier
 ) {
     val canSave = entry.startTime != null && entry.startTime!!.isBefore(entry.endTime ?: now.value)
@@ -131,7 +130,7 @@ fun EditEntryPage(
                     }
                 })
             },
-            modifier = modifier,
+            modifier = modifier.padding(contentPadding),
         )
     }
 }

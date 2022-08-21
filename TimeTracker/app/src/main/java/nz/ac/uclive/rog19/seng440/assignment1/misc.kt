@@ -1,5 +1,11 @@
 package nz.ac.uclive.rog19.seng440.assignment1
 
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import java.time.Duration
 
 /// Log.d(A, "some message")
@@ -58,3 +64,19 @@ fun durationFormatter(duration: Duration, numComponents: Int = 2): String {
     }
     return out
 }
+
+val PaddingValues.top: Dp
+    get() = calculateTopPadding()
+
+val PaddingValues.bottom: Dp
+    get() = calculateBottomPadding()
+
+fun PaddingValues(horizontal: Dp = 0.dp, top: Dp = 0.dp, bottom: Dp = 0.dp): PaddingValues = PaddingValues(
+    start = horizontal,
+    top = top,
+    end = horizontal,
+    bottom = bottom
+)
+
+val PaddingValues.horizontal: Dp
+    get() = (calculateStartPadding(LayoutDirection.Ltr) + calculateEndPadding(LayoutDirection.Ltr)) / 2

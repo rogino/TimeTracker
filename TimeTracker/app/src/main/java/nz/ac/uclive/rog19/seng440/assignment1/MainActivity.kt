@@ -6,6 +6,7 @@ import android.os.Handler
 import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.MaterialTheme
@@ -84,9 +85,7 @@ class MainActivity : ComponentActivity() {
             }
             val navController = rememberNavController()
 
-            val paddingModifier = Modifier
-                .padding(horizontal = 16.dp)
-                .padding(top = 8.dp)
+            val recommendedPadding = PaddingValues(horizontal = 16.dp, top = 8.dp)
             AppTheme {
                 // A surface container using the 'background' color from the theme
                 Surface(
@@ -109,7 +108,8 @@ class MainActivity : ComponentActivity() {
                     NavHost(navController, startDestination = startDestination) {
                         composable("login") {
                             LoginView(
-                                apiRequest = apiRequest
+                                apiRequest = apiRequest,
+                                contentPadding = recommendedPadding
                             ) {
                                 with(
                                     getSharedPreferences(
@@ -158,7 +158,7 @@ class MainActivity : ComponentActivity() {
                                     currentlyEditedEntryDidHaveEndTimeSet = currentlyEditedEntry.endTime != null
                                     navController.navigate("edit_entry")
                                 },
-                                modifier = paddingModifier
+                                contentPadding = recommendedPadding
                             )
                         }
                         composable("edit_entry") {
@@ -172,7 +172,7 @@ class MainActivity : ComponentActivity() {
                                 goBack = {
                                     navController.popBackStack()
                                 },
-                                modifier = paddingModifier
+                                contentPadding = recommendedPadding
                             )
                         }
                     }

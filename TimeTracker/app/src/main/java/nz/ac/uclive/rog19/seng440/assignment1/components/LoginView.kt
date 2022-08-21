@@ -28,6 +28,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import nz.ac.uclive.rog19.seng440.assignment1.ApiRequest
+import nz.ac.uclive.rog19.seng440.assignment1.PaddingValues
 import nz.ac.uclive.rog19.seng440.assignment1.R
 import nz.ac.uclive.rog19.seng440.assignment1.model.Me
 import nz.ac.uclive.rog19.seng440.assignment1.newlineEtAlRegex
@@ -37,7 +38,8 @@ import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.AppTheme
 @Composable
 fun LoginView(
     apiRequest: ApiRequest,
-    onLogin: ((Me) -> Unit)? = null
+    contentPadding: PaddingValues = PaddingValues(),
+    onLogin: ((Me) -> Unit)? = null,
 ) {
     var email by remember { mutableStateOf(TextFieldValue("")) }
     var password by remember { mutableStateOf(TextFieldValue("")) }
@@ -53,7 +55,7 @@ fun LoginView(
     Column(
         verticalArrangement = Arrangement.spacedBy(20.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().padding(contentPadding),
     ) {
         Image(
             painterResource(R.mipmap.ic_launcher_foreground),

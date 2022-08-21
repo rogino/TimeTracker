@@ -289,8 +289,9 @@ class ApiRequest {
                         return continuation.resume(body)
                     }
                     Log.e(TAG, "ERROR ${response.code} FROM API SERVER")
+                    val body = response.body?.string()
                     Log.e(TAG, response.headers!!.toString())
-                    Log.e(TAG, response.body!!.string())
+                    Log.e(TAG, body ?: "no body received")
 
                     val exception = when (response.code) {
                         429 -> {
@@ -318,7 +319,7 @@ class ApiRequest {
                         }
                         else -> {
                             TogglApiException(
-                                context?.getString(R.string.api_error_http_code) ?: "Error ${response.code}")
+                                context?.getString(R.string.api_error_http_code, response.code, body ?: "") ?: "Error ${response.code}")
                         }
                     }
                     response.close()

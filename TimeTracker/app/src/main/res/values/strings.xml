@@ -41,7 +41,7 @@
         <item quantity="other">Invalid credentials. %1$d login attempts remaining.</item>
     </plurals>
     <string name="api_error_not_authorized">Not authorized.</string>
-    <string name="api_error_http_code">HTTP error code %1$d received.</string>
+    <string name="api_error_http_code">HTTP error code %1$d received. %1$s</string>
     <string name="delete_time_entry">Delete Entry</string>
     <string name="last_stop_time">Last stop time</string>
     <string name="now">now</string>
