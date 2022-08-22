@@ -1,12 +1,12 @@
 package nz.ac.uclive.rog19.seng440.assignment1.components
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -21,13 +21,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.PopupProperties
 import com.google.accompanist.insets.ui.TopAppBar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import nz.ac.uclive.rog19.seng440.assignment1.*
+import nz.ac.uclive.rog19.seng440.assignment1.ApiRequest
 import nz.ac.uclive.rog19.seng440.assignment1.R
+import nz.ac.uclive.rog19.seng440.assignment1.makeRequestsShowingToastOnError
 import nz.ac.uclive.rog19.seng440.assignment1.model.*
+import nz.ac.uclive.rog19.seng440.assignment1.newlineEtAlRegex
 import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.AppTheme
 import java.time.Clock
 import java.time.Instant
@@ -50,7 +51,6 @@ fun EditEntryPage(
     val context = LocalContext.current
     var isSaving by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
-    val scrollState = rememberScrollState()
 
     fun save(payload: TimeEntry) {
         isSaving = true
@@ -59,15 +59,17 @@ fun EditEntryPage(
             if (payload.id == null) {
                 apiRequest.newTimeEntry(payload)
             } else {
-                val response = if (model.currentlyEditedEntrySaveState?.endTime != null && payload.endTime == null) {
-                    val res = apiRequest.updateTimeEntryByDeletingAndCreatingBecauseTogglV9ApiSucks(
-                        payload
-                    )
-                    model.deleteEntry(payload.id!!)
-                    res
-                } else {
-                    apiRequest.updateTimeEntry(payload)
-                }
+                val response =
+                    if (model.currentlyEditedEntrySaveState?.endTime != null && payload.endTime == null) {
+                        val res =
+                            apiRequest.updateTimeEntryByDeletingAndCreatingBecauseTogglV9ApiSucks(
+                                payload
+                            )
+                        model.deleteEntry(payload.id!!)
+                        res
+                    } else {
+                        apiRequest.updateTimeEntry(payload)
+                    }
                 response?.let {
                     entry.copyPropertiesFromEntry(response)
                     model.currentlyEditedEntrySaveState = response
@@ -126,7 +128,7 @@ fun EditEntryPage(
             zoneId = zoneId,
             allowEditing = allowEditing && !isSaving,
             isSaving = isSaving,
-            isCurrentOrNewestTimeEntry = entry.isOngoing || model.timeEntries.first().id == entry.id,
+            isCurrentOrNewestTimeEntry = entry.isOngoing || model.timeEntries.firstOrNull()?.id == entry.id,
             stopAndSaveEntry = {
                 save(it)
             },
@@ -146,10 +148,6 @@ fun EditEntryPage(
                 .padding(contentPadding)
                 .padding(it)
                 .padding(WindowInsets.ime.asPaddingValues())
-                .scrollable(
-                    state = scrollState,
-                    orientation = Orientation.Vertical
-                )
         )
     }
 }
@@ -177,7 +175,11 @@ fun EditEntryView(
         MaterialTheme.colors.background,
         0.2f
     )
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(
+        modifier = Modifier
+            .verticalScroll(state = rememberScrollState(), enabled = true)
+            .then(modifier), verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
         Row(
             modifier = Modifier
                 .height(10.dp)
@@ -273,6 +275,13 @@ fun EditEntryView(
                 }
             }
         }
+
+        Spacer(
+            modifier = Modifier.padding(
+                bottom = WindowInsets.navigationBars.asPaddingValues()
+                    .calculateBottomPadding()
+            )
+        )
     }
 }
 
