@@ -152,7 +152,9 @@ fun TimeEntryListPage(
             enter = slideInHorizontally { width } + fadeIn(),
             exit = slideOutHorizontally { width } + fadeOut()
         ) {
-            FloatingActionButton(onClick = { editEntry?.invoke(null) }) {
+            FloatingActionButton(onClick = {
+                editEntry?.invoke(TimeEntry(startTime = Instant.now()))
+            }) {
                 Icon(
                     Icons.Outlined.Add,
                     contentDescription = stringResource(R.string.create_time_entry)

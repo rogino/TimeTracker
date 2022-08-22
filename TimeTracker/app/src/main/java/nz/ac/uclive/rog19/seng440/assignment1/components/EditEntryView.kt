@@ -136,7 +136,8 @@ fun EditEntryPage(
             },
             modifier = modifier
                 .padding(contentPadding)
-                .padding(it),
+                .padding(it)
+                .padding(WindowInsets.ime.asPaddingValues())
         )
     }
 }

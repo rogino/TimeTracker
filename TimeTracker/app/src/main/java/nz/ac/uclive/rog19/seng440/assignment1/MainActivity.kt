@@ -144,6 +144,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
 
         model = GodModel()
         preferences = PreferenceWrapper(
@@ -210,12 +211,15 @@ class MainActivity : ComponentActivity() {
                                 contentPadding = recommendedPadding
                             ) {
                                 preferences.saveCredentials(it.apiToken, it.defaultWorkspaceId)
+
+                                isRefreshing.value = true
+                                model.refreshEverything(coroutineScope = lifecycleScope, apiRequest = apiRequest) {
+                                    isRefreshing.value = false
+                                    it?.let { showErrorToast(baseContext, it) }
+                                }
+
                                 navController.navigate("entries") {
                                     // Remove login page from stack
-                                    model.refreshEverything(coroutineScope = lifecycleScope, apiRequest = apiRequest) {
-                                        isRefreshing.value = false
-                                        it?.let { showErrorToast(baseContext, it) }
-                                    }
                                     popUpTo("login") {
                                         inclusive = true
                                     }
@@ -272,10 +276,12 @@ class MainActivity : ComponentActivity() {
     override fun onStop() {
         super.onStop()
         handler.removeCallbacks(updateTask)
-        lifecycleScope.launch {
-            Log.d(TAG, "Saving model to disk")
-            preferences.saveModel(model)
-            Log.d(TAG, "Saved model to disk")
+        if (apiRequest.authenticated) {
+            lifecycleScope.launch {
+                Log.d(TAG, "Saving model to disk")
+                preferences.saveModel(model)
+                Log.d(TAG, "Saved model to disk")
+            }
         }
     }
 }

@@ -55,7 +55,10 @@ fun LoginView(
     Column(
         verticalArrangement = Arrangement.spacedBy(20.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.fillMaxSize().padding(contentPadding),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(contentPadding)
+            .padding(WindowInsets.ime.asPaddingValues()),
     ) {
         Image(
             painterResource(R.mipmap.ic_launcher_foreground),
