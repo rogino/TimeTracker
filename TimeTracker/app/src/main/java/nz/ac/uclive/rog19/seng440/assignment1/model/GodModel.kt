@@ -1,9 +1,7 @@
 package nz.ac.uclive.rog19.seng440.assignment1.model
 
 import android.util.Log
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.toMutableStateList
+import androidx.compose.runtime.*
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.CoroutineScope
 import nz.ac.uclive.rog19.seng440.assignment1.*
@@ -58,6 +56,10 @@ class GodModel(
 
     val mostRecentEntry: TimeEntry? get() = timeEntries.firstOrNull()
 
+    /// Saved value of the currenly edited entry
+    var currentlyEditedEntrySaveState: TimeEntry? by mutableStateOf(null)
+    var currentlyEditedEntry = TimeEntryObservable()
+
     fun addOrUpdate(timeEntry: TimeEntry) {
         val index = timeEntries.indexOfFirst { it.id == timeEntry.id }
         if (index == -1) {
@@ -68,6 +70,18 @@ class GodModel(
         timeEntries.sortByDescending { it.startTime }
 
         entriesMap[timeEntry.id] = timeEntry
+
+//        if (timeEntry.id != null && currentlyEditedEntrySaveState?.id == timeEntry.id) {
+//            val currentTimestamp = currentEntry?.lastUpdated
+//            val newTimestamp = timeEntry.lastUpdated
+//            if (currentTimestamp != null && newTimestamp != null) {
+//                if (currentTimestamp.isBefore(newTimestamp)) {
+//                    currentlyEditedEntrySaveState = timeEntry
+//                }
+//            } else if (currentTimestamp == null && newTimestamp != null) {
+//                currentlyEditedEntrySaveState = timeEntry
+//            }
+//        }
     }
 
     fun deleteEntry(id: Long) {
@@ -117,11 +131,10 @@ class GodModel(
         )
     }
 
-
     /// Returns that most recent stopped entry if one exists within the given time period
     /// - Parameter currentlyEditedEntryId: if this is the most recent entry, it will return the
     /// stop time for the second most recent entry
-    fun lastEntryStopTime(currentlyEditedEntryId: Long?, withinLastNDays: Long = 1): Instant? {
+    private fun lastEntryStopTime(currentlyEditedEntryId: Long?, withinLastNDays: Long = 1): Instant? {
         val mostRecent = timeEntries.firstOrNull()
         var lastEntryStopTime: Instant? = null
 
@@ -136,6 +149,10 @@ class GodModel(
         }
 
         return lastEntryStopTime
+    }
+
+    fun lastEntryStopTime(withinLastNDays: Long = 1): Instant? {
+        return lastEntryStopTime(currentlyEditedEntrySaveState?.id, withinLastNDays)
     }
 
     fun setTags(tags: List<String>) {

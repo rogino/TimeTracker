@@ -1,8 +1,12 @@
 package nz.ac.uclive.rog19.seng440.assignment1.components
 
+import android.util.Log
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -17,6 +21,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.PopupProperties
 import com.google.accompanist.insets.ui.TopAppBar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -30,22 +35,22 @@ import java.time.ZoneId
 
 @Composable
 fun EditEntryPage(
-    entry: TimeEntryObservable = remember { TimeEntryObservable() },
     model: GodModel,
     now: State<Instant> = mutableStateOf(Instant.now()),
     zoneId: ZoneId = Clock.systemDefaultZone().zone,
     allowEditing: Boolean = true,
     apiRequest: ApiRequest,
-    didHaveEndTimeSet: Boolean? = null,
     goBack: () -> Unit,
     contentPadding: PaddingValues = PaddingValues(),
     modifier: Modifier = Modifier
 ) {
+    val entry = model.currentlyEditedEntry
     val canSave = entry.startTime != null && entry.startTime!!.isBefore(entry.endTime ?: now.value)
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     var isSaving by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
+    val scrollState = rememberScrollState()
 
     fun save(payload: TimeEntry) {
         isSaving = true
@@ -54,7 +59,7 @@ fun EditEntryPage(
             if (payload.id == null) {
                 apiRequest.newTimeEntry(payload)
             } else {
-                val response = if (didHaveEndTimeSet == true && payload.endTime == null) {
+                val response = if (model.currentlyEditedEntrySaveState?.endTime != null && payload.endTime == null) {
                     val res = apiRequest.updateTimeEntryByDeletingAndCreatingBecauseTogglV9ApiSucks(
                         payload
                     )
@@ -63,7 +68,10 @@ fun EditEntryPage(
                 } else {
                     apiRequest.updateTimeEntry(payload)
                 }
-                response?.let { entry.copyPropertiesFromEntry(response) }
+                response?.let {
+                    entry.copyPropertiesFromEntry(response)
+                    model.currentlyEditedEntrySaveState = response
+                }
                 model.addOrUpdate(entry.toTimeEntry()!!)
                 withContext(Dispatchers.Main) {
                     goBack()
@@ -111,7 +119,7 @@ fun EditEntryPage(
     ) {
         EditEntryView(
             entry = entry,
-            lastEntryStopTime = model.lastEntryStopTime(entry.id),
+            lastEntryStopTime = model.lastEntryStopTime(),
             projects = model.projects,
             allTags = model.tags,
             now = now,
@@ -138,6 +146,10 @@ fun EditEntryPage(
                 .padding(contentPadding)
                 .padding(it)
                 .padding(WindowInsets.ime.asPaddingValues())
+                .scrollable(
+                    state = scrollState,
+                    orientation = Orientation.Vertical
+                )
         )
     }
 }
@@ -166,7 +178,6 @@ fun EditEntryView(
         0.2f
     )
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-
         Row(
             modifier = Modifier
                 .height(10.dp)
@@ -388,6 +399,7 @@ fun SelectTagsDropdown(
             allTags.forEach { tagName ->
                 val index = selectedTags.indexOf(tagName)
                 val isSelected = index != -1
+                val backgroundColor = if (isSelected) selectedRowColor else Color.Unspecified
                 DropdownMenuItem(
                     onClick = {
                         if (!allowEditing) return@DropdownMenuItem
@@ -398,7 +410,7 @@ fun SelectTagsDropdown(
                         }
                     },
                     modifier = Modifier.background(
-                        color = if (isSelected) selectedRowColor else Color.Unspecified
+                        color = backgroundColor
                     )
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -420,7 +432,6 @@ fun EditEntry_Preview() {
             modifier = Modifier.height(600.dp)
         ) {
             EditEntryPage(
-                entry = mockModel.currentEntry!!.toObservable(),
                 model = mockModel,
                 apiRequest = ApiRequest(),
                 goBack = {},

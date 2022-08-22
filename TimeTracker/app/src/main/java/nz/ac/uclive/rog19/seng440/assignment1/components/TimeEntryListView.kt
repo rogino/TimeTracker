@@ -34,10 +34,7 @@ import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.SwipeRefreshIndicator
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import kotlinx.coroutines.*
-import nz.ac.uclive.rog19.seng440.assignment1.model.GodModel
-import nz.ac.uclive.rog19.seng440.assignment1.model.Project
-import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntry
-import nz.ac.uclive.rog19.seng440.assignment1.model.mockModel
+import nz.ac.uclive.rog19.seng440.assignment1.model.*
 import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.AppTheme
 import java.time.*
 import java.time.format.DateTimeFormatter
@@ -125,12 +122,11 @@ fun OverflowMenu(content: @Composable () -> Unit) {
 fun TimeEntryListPage(
     modifier: Modifier = Modifier,
     model: GodModel,
-    lastEntryStopTime: (() -> Instant?)? = null,
     zoneId: ZoneId = Clock.systemDefaultZone().zone,
     now: State<Instant> = mutableStateOf(Instant.now()),
     apiRequest: ApiRequest? = null,
     logout: (() -> Unit)? = null,
-    editEntry: ((TimeEntry?) -> Unit)? = null,
+    editEntry: (() -> Unit)? = null,
     isRefreshing: MutableState<Boolean> = mutableStateOf(false),
     contentPadding: PaddingValues = PaddingValues()
 ) {
@@ -153,7 +149,9 @@ fun TimeEntryListPage(
             exit = slideOutHorizontally { width } + fadeOut()
         ) {
             FloatingActionButton(onClick = {
-                editEntry?.invoke(TimeEntry(startTime = Instant.now()))
+                model.currentlyEditedEntrySaveState = null
+                model.currentlyEditedEntry = TimeEntry(startTime = Instant.now()).toObservable()
+                editEntry?.invoke()
             }) {
                 Icon(
                     Icons.Outlined.Add,
@@ -174,7 +172,9 @@ fun TimeEntryListPage(
             )
             Column(modifier = Modifier
                 .clickable {
-                    editEntry?.invoke(currentEntry)
+                    model.currentlyEditedEntrySaveState = currentEntry
+                    model.currentlyEditedEntry = (currentEntry ?: TimeEntry()).toObservable()
+                    editEntry?.invoke()
                 }
             ) {
                 Divider(color = MaterialTheme.colors.secondary, thickness = 2.dp)
@@ -227,11 +227,15 @@ fun TimeEntryListPage(
                         entries = model.timeEntries,
                         projects = model.projects,
                         entryCurrentlyOngoing = model.currentEntry != null,
-                        lastEntryStopTime = lastEntryStopTime,
+                        lastEntryStopTime = { model.lastEntryStopTime() },
                         zoneId = zoneId,
                         now = now,
                         contentPadding = contentPadding,
-                        editEntry = editEntry,
+                        editEntry = {
+                            model.currentlyEditedEntrySaveState = it
+                            model.currentlyEditedEntry = (it ?: TimeEntry()).toObservable()
+                            editEntry?.invoke()
+                        },
                         stopEntry = { entry ->
                             currentlyUpdatingEntry = true
                             makeRequestsShowingToastOnError(

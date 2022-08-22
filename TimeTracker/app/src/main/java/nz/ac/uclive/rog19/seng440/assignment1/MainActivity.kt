@@ -9,6 +9,7 @@ import android.util.Log
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
@@ -31,6 +32,7 @@ import nz.ac.uclive.rog19.seng440.assignment1.components.LoginView
 import nz.ac.uclive.rog19.seng440.assignment1.model.*
 import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.AppTheme
 import java.time.Instant
+import kotlin.properties.Delegates
 
 // https://developer.android.com/studio/write/java8-support-table
 
@@ -134,34 +136,37 @@ class PreferenceWrapper(val preferences: SharedPreferences) {
 }
 
 class MainActivity : ComponentActivity() {
-    private lateinit var model: GodModel
+    private var model: GodModel by Delegates.notNull<GodModel>()
     private lateinit var handler: Handler
     private lateinit var updateTask: Runnable
     private lateinit var apiRequest: ApiRequest
     private lateinit var preferences: PreferenceWrapper
     private var now = mutableStateOf(Instant.now())
 
+    private fun makeGodModel(): GodModel {
+        val model: GodModel by viewModels()
+        return model
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
 
-        model = GodModel()
+        model = makeGodModel()
         preferences = PreferenceWrapper(
             getSharedPreferences(timeTrackerPreferencesFileName, Context.MODE_PRIVATE)
         )
-        lifecycleScope.launch {
-            Log.d(TAG, "Retrieving model from disk")
-            preferences.populateModelWithCached(model)
-            Log.d(TAG, "Retrieved model from disk")
+        if (savedInstanceState == null) {
+            // Only retrieve from disk when launching app
+            lifecycleScope.launch {
+                Log.d(TAG, "Retrieving model from disk")
+                preferences.populateModelWithCached(model)
+                Log.d(TAG, "Retrieved model from disk")
+            }
         }
 
         apiRequest = ApiRequest()
         apiRequest.context = baseContext
         preferences.initApiRequest(apiRequest)
-
-        var currentlyEditedEntry = TimeEntryObservable()
-        var currentlyEditedEntryDidHaveEndTimeSet: Boolean? = null
 
         handler = Handler(Looper.getMainLooper())
         updateTask = Runnable {
@@ -230,7 +235,6 @@ class MainActivity : ComponentActivity() {
                             TimeEntryListPage(
                                 model = model,
                                 now = now,
-                                lastEntryStopTime = { model.lastEntryStopTime(currentlyEditedEntry.id) },
                                 apiRequest = apiRequest,
                                 logout = {
                                     navController.navigate("login") {
@@ -239,10 +243,7 @@ class MainActivity : ComponentActivity() {
                                         preferences.clearCredentials()
                                     }
                                 },
-                                editEntry = { entry ->
-                                    currentlyEditedEntry =
-                                        entry?.toObservable() ?: TimeEntryObservable()
-                                    currentlyEditedEntryDidHaveEndTimeSet = currentlyEditedEntry.endTime != null
+                                editEntry = {
                                     navController.navigate("edit_entry")
                                 },
                                 isRefreshing = isRefreshing,
@@ -252,10 +253,8 @@ class MainActivity : ComponentActivity() {
                         composable("edit_entry") {
                             EditEntryPage(
                                 model = model,
-                                entry = currentlyEditedEntry,
                                 now = now,
                                 apiRequest = apiRequest,
-                                didHaveEndTimeSet = currentlyEditedEntryDidHaveEndTimeSet,
                                 goBack = {
                                     navController.popBackStack()
                                 },
