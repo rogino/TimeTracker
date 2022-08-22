@@ -39,7 +39,7 @@
     <string name="api_error_rate_limit">Toggl APIレート制限中 時間を空けてもう一度お試しください。</string>
     <string name="api_error_invalid_credentials">クレデンシャル無効</string>
     <string name="api_error_not_authorized">アクセス権なし</string>
-    <string name="api_error_http_code">HTTP 受信エラーコード　$1$d. %1$s</string>
+    <string name="api_error_http_code">HTTP 受信エラーコード　$1$d. %2$s</string>
     <string name="delete_time_entry">入力削除</string>
     <string name="time_entries">入力時刻</string>
     <string name="cancel">キャンセル</string>

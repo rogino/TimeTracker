@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,6 +22,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -86,12 +88,23 @@ fun LoginView(
             singleLine = true
         )
 
+        var passwordVisible by remember { mutableStateOf(false) }
+
         TextField(
             value = password,
             label = { Text(text = stringResource(R.string.password)) },
-            visualTransformation = PasswordVisualTransformation(),
+            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+            trailingIcon = { IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                Icon(painter = painterResource(
+                        if (passwordVisible) R.drawable.ic_baseline_visibility_24
+                        else R.drawable.ic_baseline_visibility_off_24
+                    ),
+                    tint = MaterialTheme.colors.primary,
+                    contentDescription = "${if (passwordVisible) "Hide" else "Show"} password"
+                )
+            }},
             onValueChange = {
                 if (it.text.contains(newlineEtAlRegex)) {
                     focusManager.clearFocus()
@@ -102,6 +115,7 @@ fun LoginView(
         Button(
             onClick = {
                 coroutineScope.launch {
+                    focusManager.clearFocus()
                     withContext(Dispatchers.IO) {
                         requestInProgress = true
                         try {

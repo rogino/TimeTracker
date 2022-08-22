@@ -306,6 +306,7 @@ class ApiRequest {
                             } else {
                                 context?.resources?.getQuantityString(
                                     R.plurals.api_error_invalid_credentials_x_attempts_left,
+                                    attemptsRemaining,
                                     attemptsRemaining
                                     ) ?:
                                 "Invalid credentials. $attemptsRemaining attempts left"
