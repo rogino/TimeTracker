@@ -56,28 +56,27 @@ fun EditEntryPage(
         isSaving = true
         focusManager.clearFocus()
         makeRequestsShowingToastOnError(coroutineScope, context, { isSaving = false }, {
-            if (payload.id == null) {
+            val response = if (payload.id == null) {
                 apiRequest.newTimeEntry(payload)
             } else {
-                val response =
-                    if (model.currentlyEditedEntrySaveState?.endTime != null && payload.endTime == null) {
-                        val res =
-                            apiRequest.updateTimeEntryByDeletingAndCreatingBecauseTogglV9ApiSucks(
-                                payload
-                            )
-                        model.deleteEntry(payload.id!!)
-                        res
-                    } else {
-                        apiRequest.updateTimeEntry(payload)
-                    }
-                response?.let {
-                    entry.copyPropertiesFromEntry(response)
-                    model.currentlyEditedEntrySaveState = response
+                if (model.currentlyEditedEntrySaveState?.endTime != null && payload.endTime == null) {
+                    val res =
+                        apiRequest.updateTimeEntryByDeletingAndCreatingBecauseTogglV9ApiSucks(
+                            payload
+                        )
+                    model.deleteEntry(payload.id!!)
+                    res
+                } else {
+                    apiRequest.updateTimeEntry(payload)
                 }
-                model.addOrUpdate(entry.toTimeEntry()!!)
-                withContext(Dispatchers.Main) {
-                    goBack()
-                }
+            }
+            response?.let {
+                entry.copyPropertiesFromEntry(response)
+                model.currentlyEditedEntrySaveState = response
+            }
+            model.addOrUpdate(entry.toTimeEntry()!!)
+            withContext(Dispatchers.Main) {
+                goBack()
             }
         })
     }
