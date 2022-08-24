@@ -77,7 +77,8 @@ class ApiRequest {
             .host(domain.removePrefix("https://"))
             .addPathSegments(rootPath)
 
-    private val jsonConverter = Klaxon().converter(DateTimeConverter)
+    private val jsonConverter: Klaxon
+      get() = Klaxon().converter(DateTimeConverter)
 
     private val jsonType = "application/json; charset=utf-8".toMediaType()
 
@@ -217,7 +218,8 @@ class ApiRequest {
 
         val url = urlBuilder.build()
         Log.d(TAG, "Get time entries, url = $url")
-        get(url, client!!)?.let {
+        get(url, client!!).let {
+            Log.d(TAG, "Receive time entries response, length = ${it.length}")
             val entries = jsonConverter.parseArray<TimeEntry>(it)
             Log.d(TAG, "Retrieve ${entries?.count()} entries, date range ${entries?.last()?.startTime} - ${entries?.first()?.startTime}")
             return entries
