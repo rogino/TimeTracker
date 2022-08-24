@@ -10,6 +10,7 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
@@ -42,6 +43,7 @@ val timeTrackerPreferencesFileName = "main"
 class PreferenceWrapper(val preferences: SharedPreferences) {
     private val API_KEY = "API_KEY"
     private val WORKSPACE_ID = "WORKSPACE_ID"
+    private val THEME = "COLOR_THEME"
 
     fun initApiRequest(apiRequest: ApiRequest) {
         val key = preferences.getString(API_KEY, null)
@@ -51,6 +53,29 @@ class PreferenceWrapper(val preferences: SharedPreferences) {
             apiRequest.defaultWorkspaceId = workspaceId
         }
     }
+
+    fun isDarkMode(): Boolean? {
+        val theme = preferences.getString(THEME, null)
+        if (theme == "dark") {
+            return true
+        } else if (theme == "light") {
+            return false
+        }
+        return null
+    }
+
+    fun setTheme(isDarkMode: Boolean?) {
+        with(preferences.edit()) {
+            if (isDarkMode == true) {
+                putString(THEME, "dark")
+            } else if (isDarkMode == false) {
+                putString(THEME, "light")
+            } else {
+                remove(THEME)
+            }
+        }
+    }
+
 
     fun saveCredentials(apiToken: String, workspaceId: Int) {
         with(preferences.edit()) {
@@ -90,6 +115,9 @@ class MainActivity : ComponentActivity() {
         preferences = PreferenceWrapper(
             getSharedPreferences(timeTrackerPreferencesFileName, Context.MODE_PRIVATE)
         )
+
+        var isDarkMode = mutableStateOf<Boolean?>(preferences.isDarkMode())
+
         if (savedInstanceState == null) {
             // Only retrieve from disk when launching app
             lifecycleScope.launch {
@@ -126,7 +154,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val systemUiController = rememberSystemUiController()
-            val useDarkIcons = MaterialTheme.colors.isLight
+            val useDarkIcons = isDarkMode.value ?: MaterialTheme.colors.isLight
             SideEffect {
                 // Update all of the system bar colors to be transparent, and use
                 // dark icons if we're in light theme
@@ -138,7 +166,7 @@ class MainActivity : ComponentActivity() {
             val navController = rememberNavController()
 
             val recommendedPadding = PaddingValues(horizontal = 16.dp, top = 8.dp)
-            AppTheme {
+            AppTheme(useDarkTheme = isDarkMode.value ?: isSystemInDarkTheme()) {
                 // A surface container using the 'background' color from the theme
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -185,7 +213,17 @@ class MainActivity : ComponentActivity() {
                                     navController.navigate("edit_entry")
                                 },
                                 isRefreshing = isRefreshing,
-                                contentPadding = recommendedPadding
+                                contentPadding = recommendedPadding,
+                                toggleTheme = {
+                                    if (isDarkMode.value == null) {
+                                        isDarkMode.value = false
+                                    } else if (isDarkMode.value == false) {
+                                        isDarkMode.value = true
+                                    } else {
+                                        isDarkMode.value = null
+                                    }
+                                    preferences.setTheme(isDarkMode.value)
+                                }
                             )
                         }
                         composable("edit_entry") {

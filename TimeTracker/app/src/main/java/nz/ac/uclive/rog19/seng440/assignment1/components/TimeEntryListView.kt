@@ -127,6 +127,7 @@ fun TimeEntryListPage(
     apiRequest: ApiRequest? = null,
     logout: (() -> Unit)? = null,
     goToEditEntryView: (() -> Unit)? = null,
+    toggleTheme: (() -> Unit)? = null,
     isRefreshing: MutableState<Boolean> = mutableStateOf(false),
     contentPadding: PaddingValues = PaddingValues()
 ) {
@@ -178,6 +179,10 @@ fun TimeEntryListPage(
                 OverflowMenu {
                     DropdownMenuItem(onClick = { logout?.invoke() }) {
                         Text(text = stringResource(R.string.logout))
+                    }
+                    var bla by remember { mutableStateOf(false) }
+                    DropdownMenuItem(onClick = { toggleTheme?.invoke() }) {
+                        Text(text = "Toggle Theme")
                     }
                 }
             },
