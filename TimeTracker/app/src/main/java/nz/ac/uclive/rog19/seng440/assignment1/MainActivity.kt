@@ -181,7 +181,7 @@ class MainActivity : ComponentActivity() {
                                         preferences.clearCredentials()
                                     }
                                 },
-                                editEntry = {
+                                goToEditEntryView = {
                                     navController.navigate("edit_entry")
                                 },
                                 isRefreshing = isRefreshing,

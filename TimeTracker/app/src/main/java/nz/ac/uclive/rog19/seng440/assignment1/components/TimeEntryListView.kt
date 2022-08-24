@@ -126,10 +126,51 @@ fun TimeEntryListPage(
     now: State<Instant> = mutableStateOf(Instant.now()),
     apiRequest: ApiRequest? = null,
     logout: (() -> Unit)? = null,
-    editEntry: (() -> Unit)? = null,
+    goToEditEntryView: (() -> Unit)? = null,
     isRefreshing: MutableState<Boolean> = mutableStateOf(false),
     contentPadding: PaddingValues = PaddingValues()
 ) {
+    // Currently refreshing
+    var currentlyUpdatingEntry by remember { mutableStateOf(false) }
+    var coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
+
+    fun editEntry(entry: TimeEntry?) {
+        model.currentlyEditedEntrySaveState = entry
+        model.currentlyEditedEntry = (entry ?: TimeEntry()).toObservable()
+        goToEditEntryView?.invoke()
+    }
+    fun stopEntry(entry: TimeEntry) {
+        currentlyUpdatingEntry = true
+        makeRequestsShowingToastOnError(
+            coroutineScope,
+            context,
+            { currentlyUpdatingEntry = false },
+            {
+                apiRequest?.updateTimeEntry(entry.copy(endTime = Instant.now()))
+                    ?.let {
+                        model.addOrUpdate(it)
+                    }
+            }
+        )
+    }
+    fun resumeEntry(entry: TimeEntry) {
+        currentlyUpdatingEntry = true
+        makeRequestsShowingToastOnError(
+            coroutineScope,
+            context,
+            { currentlyUpdatingEntry = false },
+            {
+                apiRequest?.updateTimeEntryByDeletingAndCreatingBecauseTogglV9ApiSucks(
+                    entry.copy(endTime = null)
+                )?.let {
+                    model.deleteEntry(entry.id!!)
+                    model.addOrUpdate(it)
+                }
+            }
+        )
+    }
+
     Scaffold(topBar = {
         TopAppBar(
             title = { Text(text = stringResource(R.string.time_entries)) },
@@ -151,7 +192,7 @@ fun TimeEntryListPage(
             FloatingActionButton(onClick = {
                 model.currentlyEditedEntrySaveState = null
                 model.currentlyEditedEntry = TimeEntry(startTime = Instant.now()).toObservable()
-                editEntry?.invoke()
+                goToEditEntryView?.invoke()
             }) {
                 Icon(
                     Icons.Outlined.Add,
@@ -160,9 +201,8 @@ fun TimeEntryListPage(
             }
         }
     }, bottomBar = {
-        val currentEntry = model.currentEntry
         val height = with(LocalDensity.current) { 100.dp.roundToPx() }
-        AnimatedVisibility(visible = currentEntry != null,
+        AnimatedVisibility(visible = model.currentEntry != null,
         enter = slideInVertically { height } + fadeIn(),
         exit = slideOutVertically { height } + fadeOut()
         ) {
@@ -170,16 +210,22 @@ fun TimeEntryListPage(
                 WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
                 10.dp
             )
-            Column(modifier = Modifier
-                .clickable {
-                    model.currentlyEditedEntrySaveState = currentEntry
-                    model.currentlyEditedEntry = (currentEntry ?: TimeEntry()).toObservable()
-                    editEntry?.invoke()
-                }
+            var dropdownOpen by remember { mutableStateOf(false) }
+            Column(modifier = Modifier.pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = {
+                        model.currentlyEditedEntrySaveState = model.currentEntry
+                        model.currentlyEditedEntry = (model.currentEntry ?: TimeEntry()).toObservable()
+                        goToEditEntryView?.invoke()
+                    },
+                    onLongPress = { dropdownOpen = true }
+                )
+            }
             ) {
                 Divider(color = MaterialTheme.colors.secondary, thickness = 2.dp)
+                val entry = model.currentEntry ?: TimeEntry()
                 TimeEntryListItem(
-                    timeEntry = currentEntry ?: TimeEntry(),
+                    timeEntry = entry,
                     projects = model.projects,
                     now = now,
                     zoneId = zoneId,
@@ -187,13 +233,20 @@ fun TimeEntryListPage(
                         .padding(horizontal = contentPadding.horizontal)
                         .padding(bottom = bottomPadding, top = 6.dp),
                 )
+                TimeEntryListItemDropdownMenu(
+                    entry = entry,
+                    lastEntryStopTime = { model.lastEntryStopTime() },
+                    entryCurrentlyOngoing = entry.isOngoing,
+                    isMostRecentEntry = true,
+                    expanded = dropdownOpen,
+                    dismiss = { dropdownOpen = false },
+                    editEntry = ::editEntry,
+                    stopEntry = ::stopEntry,
+                    resumeEntry = ::resumeEntry,
+                )
             }
         }
     }) {
-        var currentlyUpdatingEntry by remember { mutableStateOf(false) }
-        var coroutineScope = rememberCoroutineScope()
-        val context = LocalContext.current
-
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -231,41 +284,9 @@ fun TimeEntryListPage(
                         zoneId = zoneId,
                         now = now,
                         contentPadding = contentPadding,
-                        editEntry = {
-                            model.currentlyEditedEntrySaveState = it
-                            model.currentlyEditedEntry = (it ?: TimeEntry()).toObservable()
-                            editEntry?.invoke()
-                        },
-                        stopEntry = { entry ->
-                            currentlyUpdatingEntry = true
-                            makeRequestsShowingToastOnError(
-                                coroutineScope,
-                                context,
-                                { currentlyUpdatingEntry = false },
-                                {
-                                    apiRequest?.updateTimeEntry(entry.copy(endTime = Instant.now()))
-                                        ?.let {
-                                            model.addOrUpdate(it)
-                                        }
-                                }
-                            )
-                        },
-                        resumeEntry = { entry ->
-                            currentlyUpdatingEntry = true
-                            makeRequestsShowingToastOnError(
-                                coroutineScope,
-                                context,
-                                { currentlyUpdatingEntry = false },
-                                {
-                                    apiRequest?.updateTimeEntryByDeletingAndCreatingBecauseTogglV9ApiSucks(
-                                        entry.copy(endTime = null)
-                                    )?.let {
-                                        model.deleteEntry(entry.id!!)
-                                        model.addOrUpdate(it)
-                                    }
-                                }
-                            )
-                        }
+                        editEntry = ::editEntry,
+                        stopEntry = ::stopEntry,
+                        resumeEntry = ::resumeEntry
                     )
                 } else {
                     Column(
