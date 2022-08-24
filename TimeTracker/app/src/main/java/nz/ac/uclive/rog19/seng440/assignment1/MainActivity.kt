@@ -13,7 +13,8 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
-import androidx.compose.runtime.*
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -41,9 +42,6 @@ val timeTrackerPreferencesFileName = "main"
 class PreferenceWrapper(val preferences: SharedPreferences) {
     private val API_KEY = "API_KEY"
     private val WORKSPACE_ID = "WORKSPACE_ID"
-    private val PROJECTS = "PROJECT_LIST"
-    private val TAG_NAME_LIST = "TAG_NAME_LIST"
-    private val RECENT_ENTRIES = "RECENT_ENTRIES"
 
     fun initApiRequest(apiRequest: ApiRequest) {
         val key = preferences.getString(API_KEY, null)
@@ -69,70 +67,6 @@ class PreferenceWrapper(val preferences: SharedPreferences) {
             commit()
         }
     }
-
-    val maxEntryAge: Long = 3
-    private val jsonConverter = Klaxon().converter(DateTimeConverter)
-    suspend fun saveModel(model: GodModel) {
-        withContext(Dispatchers.IO) {
-            val tags = jsonConverter.toJsonString(model.tags)
-            val projects = jsonConverter.toJsonString(model.projects.values)
-
-            val now = Instant.now()
-            val entries = model.timeEntries.filter { now.minusDays(maxEntryAge).isBefore(it.startTime) }
-            val entriesString = jsonConverter.toJsonString(entries)
-
-            with(preferences.edit()) {
-                putString(TAG_NAME_LIST, tags)
-                putString(PROJECTS, projects)
-                putString(RECENT_ENTRIES, entriesString)
-                commit()
-            }
-        }
-    }
-
-    /// Will not overwrite if there's already stuff in the model
-    suspend fun populateModelWithCached(model: GodModel) {
-        withContext(Dispatchers.IO) {
-            try {
-                val now = Instant.now()
-                val entries = jsonConverter.parseArray<TimeEntry>(
-                    preferences.getString(RECENT_ENTRIES, null) ?: "[]"
-                )?.filter { now.minusDays(maxEntryAge).isBefore(it.startTime) }
-
-                withContext(Dispatchers.Main) {
-                    if (model.timeEntries.isEmpty()) {
-                        Log.d(TAG, "Add ${entries?.count()} entries from disk to the model")
-                        entries?.let { model.setEntries(entries) }
-                    }
-                }
-
-
-                val projects = jsonConverter.parseArray<Project>(
-                    preferences.getString(PROJECTS, null) ?: "[]"
-                )
-                withContext(Dispatchers.Main) {
-                    if (model.projects.isEmpty()) {
-                        Log.d(TAG, "Add ${projects?.count()} projects from disk to the model")
-                        projects?.let { model.setProjects(it) }
-                    }
-                }
-
-
-                val tags = jsonConverter.parseArray<String>(
-                    preferences.getString(TAG_NAME_LIST, null) ?: "[]"
-                )
-                withContext(Dispatchers.Main) {
-                    if (model.tags.isEmpty()) {
-                        Log.d(TAG, "Add ${tags?.count()} projects from disk to the model")
-                        tags?.let { model.setTags(tags) }
-                    }
-                }
-            } catch (err: Throwable) {
-                Log.d(TAG, "Failed to populate model from cached data in disk")
-                Log.d(TAG, err.stackTraceToString())
-            }
-        }
-    }
 }
 
 class MainActivity : ComponentActivity() {
@@ -147,6 +81,7 @@ class MainActivity : ComponentActivity() {
         val model: GodModel by viewModels()
         return model
     }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -159,7 +94,7 @@ class MainActivity : ComponentActivity() {
             // Only retrieve from disk when launching app
             lifecycleScope.launch {
                 Log.d(TAG, "Retrieving model from disk")
-                preferences.populateModelWithCached(model)
+                GodModelSerialized.readAndPopulateModel(baseContext, model)
                 Log.d(TAG, "Retrieved model from disk")
             }
         }
@@ -218,7 +153,10 @@ class MainActivity : ComponentActivity() {
                                 preferences.saveCredentials(it.apiToken, it.defaultWorkspaceId)
 
                                 isRefreshing.value = true
-                                model.refreshEverything(coroutineScope = lifecycleScope, apiRequest = apiRequest) {
+                                model.refreshEverything(
+                                    coroutineScope = lifecycleScope,
+                                    apiRequest = apiRequest
+                                ) {
                                     isRefreshing.value = false
                                     it?.let { showErrorToast(baseContext, it) }
                                 }
@@ -278,7 +216,7 @@ class MainActivity : ComponentActivity() {
         if (apiRequest.authenticated) {
             lifecycleScope.launch {
                 Log.d(TAG, "Saving model to disk")
-                preferences.saveModel(model)
+                GodModelSerialized.saveModelToFile(baseContext, model)
                 Log.d(TAG, "Saved model to disk")
             }
         }

@@ -71,20 +71,20 @@ class GodModel(
 
         entriesMap[timeEntry.id] = timeEntry
 
-//        if (timeEntry.id != null && currentlyEditedEntrySaveState?.id == timeEntry.id) {
-//            val currentTimestamp = currentEntry?.lastUpdated
-//            val newTimestamp = timeEntry.lastUpdated
-//            if (currentTimestamp != null && newTimestamp != null) {
-//                if (currentTimestamp.isBefore(newTimestamp)) {
-//                    currentlyEditedEntrySaveState = timeEntry
-//                }
-//            } else if (currentTimestamp == null && newTimestamp != null) {
-//                currentlyEditedEntrySaveState = timeEntry
-//            }
-//        }
+        if (timeEntry.id != null && currentlyEditedEntrySaveState?.id == timeEntry.id) {
+            val currentTimestamp = currentEntry?.lastUpdated
+            val newTimestamp = timeEntry.lastUpdated
+            if (currentTimestamp != null && newTimestamp != null) {
+                if (currentTimestamp.isBefore(newTimestamp)) {
+                    currentlyEditedEntrySaveState = timeEntry
+                    currentlyEditedEntry.copyPropertiesFromEntry(timeEntry)
+                }
+            }
+        }
     }
 
     fun deleteEntry(id: Long) {
+        entriesMap.remove(id)
         val entry = timeEntries.find { it.id == id }
         entry?.let {
             timeEntries.remove(entry)
@@ -94,6 +94,16 @@ class GodModel(
     fun addEntries(entries: List<TimeEntry>) {
         entries.forEach {
             entriesMap[it.id] = it
+            if (it.id != null && it.id == currentlyEditedEntrySaveState?.id) {
+                val currentTimestamp = currentEntry?.lastUpdated
+                val newTimestamp = it.lastUpdated
+                if (currentTimestamp != null && newTimestamp != null) {
+                    if (currentTimestamp.isBefore(newTimestamp)) {
+                        currentlyEditedEntrySaveState = it
+                        currentlyEditedEntry.copyPropertiesFromEntry(it)
+                    }
+                }
+            }
         }
 
         var entries = entriesMap.values.toMutableList()
@@ -155,18 +165,18 @@ class GodModel(
         return lastEntryStopTime(currentlyEditedEntrySaveState?.id, withinLastNDays)
     }
 
-    fun setTags(tags: List<String>) {
+    fun setTags(tags: Collection<String>) {
         this.tags.clear()
         this.tags.addAll(tags)
     }
 
-    fun setProjects(projects: List<Project>) {
+    fun setProjects(projects: Collection<Project>) {
         this.projects.clear()
         this.projects.putAll(projects.associateBy { it.id })
     }
 
     /// Must be in order already
-    fun setEntries(entries: List<TimeEntry>) {
+    fun setEntries(entries: Collection<TimeEntry>) {
         timeEntries.clear()
         timeEntries.addAll(entries)
     }

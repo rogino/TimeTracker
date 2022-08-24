@@ -82,7 +82,7 @@ class ApiRequest {
     private val jsonType = "application/json; charset=utf-8".toMediaType()
 
     suspend fun getTags(): List<TogglTag>? {
-        Log.d(TAG, "Get tags projects for user")
+        Log.d(TAG, "Get tags for user")
         get("${domain}/${rootPath}/me/tags", client!!)?.let {
             val tags = jsonConverter.parseArray<TogglTag>(it)
             Log.d(TAG, "Get ${tags?.count()} tags projects for user")
