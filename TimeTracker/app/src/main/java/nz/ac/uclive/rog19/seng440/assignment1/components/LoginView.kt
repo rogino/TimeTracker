@@ -1,20 +1,28 @@
 package nz.ac.uclive.rog19.seng440.assignment1.components
 
+import android.util.Log
 import android.util.Patterns
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
-import androidx.compose.material.icons.Icons
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.boundsInParent
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
@@ -25,15 +33,15 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import nz.ac.uclive.rog19.seng440.assignment1.ApiRequest
+import nz.ac.uclive.rog19.seng440.assignment1.*
 import nz.ac.uclive.rog19.seng440.assignment1.PaddingValues
 import nz.ac.uclive.rog19.seng440.assignment1.R
 import nz.ac.uclive.rog19.seng440.assignment1.model.Me
-import nz.ac.uclive.rog19.seng440.assignment1.newlineEtAlRegex
 import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.AppTheme
 
 
@@ -49,10 +57,12 @@ fun LoginView(
     var requestInProgress by remember { mutableStateOf(false) }
 
     val coroutineScope = rememberCoroutineScope()
+    val density = LocalDensity.current
     val context = LocalContext.current
-
     val uriHandler = LocalUriHandler.current
     val focusManager = LocalFocusManager.current
+
+    var parentHeight by remember { mutableStateOf(0)}
 
     Column(
         verticalArrangement = Arrangement.spacedBy(20.dp, Alignment.CenterVertically),
@@ -60,16 +70,22 @@ fun LoginView(
         modifier = Modifier
             .fillMaxSize()
             .padding(contentPadding)
-            .padding(WindowInsets.ime.asPaddingValues()),
+            .padding(WindowInsets.ime.asPaddingValues())
+            .onGloballyPositioned { coordinates ->
+                parentHeight = coordinates.boundsInParent().size.height.toInt()
+            }
+        ,
     ) {
-        Image(
-            painterResource(R.mipmap.ic_launcher_foreground),
-            contentDescription = stringResource(R.string.icon),
-            contentScale = ContentScale.Fit,
-            modifier = Modifier
-                .fillMaxWidth(0.5f)
-                .aspectRatio(1f)
-        )
+        if (with(density) { parentHeight.toDp() } > 500.dp) {
+            Image(
+                painterResource(R.drawable.logo_no_margins_512),
+                contentDescription = stringResource(R.string.icon),
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .sizeIn(maxHeight = 100.dp)
+            )
+
+        }
 
         Text(text = stringResource(R.string.login_page_title),
             style = MaterialTheme.typography.h6
@@ -79,6 +95,7 @@ fun LoginView(
             value = email,
             label = { Text(text = stringResource(R.string.email)) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            keyboardActions = KeyboardActions(onDone = { focusManager.moveFocus(FocusDirection.Next) }),
             onValueChange = {
                 if (it.text.contains(newlineEtAlRegex)) {
                     focusManager.moveFocus(FocusDirection.Next)
