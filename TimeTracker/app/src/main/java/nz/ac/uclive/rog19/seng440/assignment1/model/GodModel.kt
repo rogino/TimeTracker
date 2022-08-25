@@ -33,6 +33,8 @@ class GodModel(
 
     private var entriesMap: MutableMap<Long?, TimeEntry>
 
+    var lastUpdated by mutableStateOf<Instant?>(null)
+
     init {
         this.projects.putAll(projects)
         this.timeEntries.addAll(timeEntries)
@@ -119,8 +121,11 @@ class GodModel(
         apiRequest: ApiRequest,
         onEnd: (Throwable?) -> Unit
     ) {
-        makeConcurrentRequests(coroutineScope = coroutineScope,
-            { onEnd(it) },
+        makeConcurrentRequests(
+            coroutineScope = coroutineScope, {
+                lastUpdated = Instant.now()
+                onEnd(it)
+            },
             {
                 apiRequest?.getTimeEntries(
                     startDate = Instant.now().minusDays(7),

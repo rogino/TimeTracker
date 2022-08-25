@@ -20,18 +20,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.beust.klaxon.Klaxon
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import nz.ac.uclive.rog19.seng440.assignment1.components.EditEntryPage
 import nz.ac.uclive.rog19.seng440.assignment1.components.LoginView
-import nz.ac.uclive.rog19.seng440.assignment1.model.*
+import nz.ac.uclive.rog19.seng440.assignment1.model.GodModel
+import nz.ac.uclive.rog19.seng440.assignment1.model.GodModelSerialized
 import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.AppTheme
 import java.time.Instant
 import kotlin.properties.Delegates
@@ -95,8 +96,10 @@ class PreferenceWrapper(val preferences: SharedPreferences) {
     }
 }
 
+
 class MainActivity : ComponentActivity() {
-    private var model: GodModel by Delegates.notNull<GodModel>()
+    private var model: GodModel by Delegates.notNull()
+    private var vm: TinyVM by Delegates.notNull()
     private lateinit var handler: Handler
     private lateinit var updateTask: Runnable
     private lateinit var apiRequest: ApiRequest
@@ -108,11 +111,21 @@ class MainActivity : ComponentActivity() {
         return model
     }
 
+    class TinyVM : ViewModel() {
+        var isRefreshing = mutableStateOf(false)
+    }
+
+    private fun makeTinyVm(): TinyVM {
+        val vm: TinyVM by viewModels()
+        return vm
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         model = makeGodModel()
+        vm = makeTinyVm()
         preferences = PreferenceWrapper(
             getSharedPreferences(timeTrackerPreferencesFileName, Context.MODE_PRIVATE)
         )
@@ -138,15 +151,21 @@ class MainActivity : ComponentActivity() {
             handler.postDelayed(updateTask, 1000)
         }
 
-        var isRefreshing = mutableStateOf(false)
-
         var startDestination = "login"
         if (apiRequest.authenticated) {
             startDestination = "entries"
-            isRefreshing.value = true
-            model.refreshEverything(coroutineScope = lifecycleScope, apiRequest = apiRequest) {
-                isRefreshing.value = false
-                it?.let { showErrorToast(baseContext, it) }
+            val lastUpdated = model.lastUpdated
+            if ((lastUpdated == null || lastUpdated.isBefore(Instant.now().minusSeconds(60)))
+                && vm.isRefreshing.value == false
+            ) {
+                vm.isRefreshing.value = true
+                model.refreshEverything(
+                    coroutineScope = lifecycleScope,
+                    apiRequest = apiRequest
+                ) {
+                    vm.isRefreshing.value = false
+                    it?.let { showErrorToast(baseContext, it) }
+                }
             }
         }
 
@@ -182,12 +201,12 @@ class MainActivity : ComponentActivity() {
                             ) {
                                 preferences.saveCredentials(it.apiToken, it.defaultWorkspaceId)
 
-                                isRefreshing.value = true
+                                vm.isRefreshing.value = true
                                 model.refreshEverything(
                                     coroutineScope = lifecycleScope,
                                     apiRequest = apiRequest
                                 ) {
-                                    isRefreshing.value = false
+                                    vm.isRefreshing.value = false
                                     it?.let { showErrorToast(baseContext, it) }
                                 }
 
@@ -218,7 +237,7 @@ class MainActivity : ComponentActivity() {
                                 goToEditEntryView = {
                                     navController.navigate("edit_entry")
                                 },
-                                isRefreshing = isRefreshing,
+                                isRefreshing = vm.isRefreshing,
                                 contentPadding = recommendedPadding,
                                 isDarkMode = isDarkMode.value,
                                 setTheme = {

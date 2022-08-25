@@ -1,5 +1,6 @@
 package nz.ac.uclive.rog19.seng440.assignment1
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable

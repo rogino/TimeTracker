@@ -45,10 +45,13 @@ class GodModelSerialized(
         val jsonConverter = Klaxon().converter(DateTimeConverter)
 
         suspend fun saveModelToFile(context: Context, model: GodModel) {
-            var newModel = model.serialize()
-            val now = Instant.now()
-            newModel.entries = newModel.entries.filter {
-                now.minusDays(MAX_ENTRY_AGE).isBefore(it.startTime)
+            var newModel: GodModelSerialized
+            withContext(Dispatchers.Main) {
+                newModel = model.serialize()
+                val now = Instant.now()
+                newModel.entries = newModel.entries.filter {
+                    now.minusDays(MAX_ENTRY_AGE).isBefore(it.startTime)
+                }
             }
             saveModelToFile(context, newModel)
         }
