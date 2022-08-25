@@ -257,7 +257,9 @@ class MainActivity : ComponentActivity() {
                                 apiRequest = apiRequest,
                                 context = baseContext,
                                 goBack = {
-                                    navController.popBackStack()
+                                    if (navController.backQueue.isNotEmpty()) {
+                                        navController.popBackStack()
+                                    }
                                 },
                                 contentPadding = recommendedPadding
                             )
