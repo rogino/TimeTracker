@@ -73,6 +73,7 @@ class PreferenceWrapper(val preferences: SharedPreferences) {
             } else {
                 remove(THEME)
             }
+            commit()
         }
     }
 
@@ -207,6 +208,9 @@ class MainActivity : ComponentActivity() {
                                         // Prevent return to entries page
                                         popUpTo("entries") { inclusive = true }
                                         preferences.clearCredentials()
+                                        lifecycleScope.launch {
+                                            GodModelSerialized.clear(baseContext)
+                                        }
                                     }
                                 },
                                 goToEditEntryView = {
@@ -214,15 +218,14 @@ class MainActivity : ComponentActivity() {
                                 },
                                 isRefreshing = isRefreshing,
                                 contentPadding = recommendedPadding,
-                                toggleTheme = {
-                                    if (isDarkMode.value == null) {
-                                        isDarkMode.value = false
-                                    } else if (isDarkMode.value == false) {
-                                        isDarkMode.value = true
-                                    } else {
-                                        isDarkMode.value = null
+                                isDarkMode = isDarkMode.value,
+                                setTheme = {
+                                    isDarkMode.value = it
+                                    lifecycleScope.launch {
+                                        withContext(Dispatchers.IO) {
+                                            preferences.setTheme(isDarkMode.value)
+                                        }
                                     }
-                                    preferences.setTheme(isDarkMode.value)
                                 }
                             )
                         }

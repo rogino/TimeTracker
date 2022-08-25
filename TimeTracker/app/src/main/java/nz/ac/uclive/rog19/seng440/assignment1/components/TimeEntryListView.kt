@@ -47,13 +47,13 @@ class TimeEntryPeriod(
     val totalDuration: Duration
         get() {
             return entries.fold(Duration.ZERO) { total, entry: TimeEntry ->
-                total + (entry?.duration ?: Duration.ZERO)
+                total + entry.duration
             }
         }
 
     fun totalDuration(now: Instant): Duration {
         return entries.fold(Duration.ZERO) { total, entry: TimeEntry ->
-            total + (entry?.duration(now) ?: Duration.ZERO)
+            total + entry.duration(now)
         }
     }
 
@@ -127,7 +127,8 @@ fun TimeEntryListPage(
     apiRequest: ApiRequest? = null,
     logout: (() -> Unit)? = null,
     goToEditEntryView: (() -> Unit)? = null,
-    toggleTheme: (() -> Unit)? = null,
+    isDarkMode: Boolean? = null,
+    setTheme: ((Boolean?) -> Unit)? = null,
     isRefreshing: MutableState<Boolean> = mutableStateOf(false),
     contentPadding: PaddingValues = PaddingValues()
 ) {
@@ -180,9 +181,20 @@ fun TimeEntryListPage(
                     DropdownMenuItem(onClick = { logout?.invoke() }) {
                         Text(text = stringResource(R.string.logout))
                     }
-                    var bla by remember { mutableStateOf(false) }
-                    DropdownMenuItem(onClick = { toggleTheme?.invoke() }) {
-                        Text(text = "Toggle Theme")
+                    if (isDarkMode != null) {
+                        DropdownMenuItem(onClick = { setTheme?.invoke(null) }) {
+                            Text(text = stringResource(R.string.use_system_theme))
+                        }
+                    }
+                    if (isDarkMode != true) {
+                        DropdownMenuItem(onClick = { setTheme?.invoke(true) }) {
+                            Text(text = stringResource(R.string.use_dark_theme))
+                        }
+                    }
+                    if (isDarkMode != true) {
+                        DropdownMenuItem(onClick = { setTheme?.invoke(false) }) {
+                            Text(text = stringResource(R.string.use_light_theme))
+                        }
                     }
                 }
             },
@@ -346,7 +358,7 @@ fun TimeEntryListView(
     resumeEntry: ((TimeEntry) -> Unit)? = null,
 ) {
     val context = LocalContext.current
-    val firstItemId = entries?.firstOrNull()?.id
+    val firstItemId = entries.firstOrNull()?.id
 
     LazyColumn(modifier = modifier) {
         // TODO somehow cache, or send in LocalDate as a state object: don't read now.value

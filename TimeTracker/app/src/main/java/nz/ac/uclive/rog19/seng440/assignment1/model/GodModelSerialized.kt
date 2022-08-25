@@ -103,5 +103,13 @@ class GodModelSerialized(
                 }
             }
         }
+
+        suspend fun clear(context: Context) {
+            Log.d(TAG, "Deleting $FILE_NAME")
+            withContext(Dispatchers.IO) {
+                context.deleteFile(FILE_NAME)
+                Log.d(TAG, "Deleted $FILE_NAME")
+            }
+        }
     }
 }

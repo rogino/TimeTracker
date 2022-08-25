@@ -1,8 +1,6 @@
 package nz.ac.uclive.rog19.seng440.assignment1.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -14,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -24,11 +23,9 @@ import androidx.compose.ui.unit.dp
 import com.google.accompanist.insets.ui.TopAppBar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import nz.ac.uclive.rog19.seng440.assignment1.ApiRequest
+import nz.ac.uclive.rog19.seng440.assignment1.*
 import nz.ac.uclive.rog19.seng440.assignment1.R
-import nz.ac.uclive.rog19.seng440.assignment1.makeRequestsShowingToastOnError
 import nz.ac.uclive.rog19.seng440.assignment1.model.*
-import nz.ac.uclive.rog19.seng440.assignment1.newlineEtAlRegex
 import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.AppTheme
 import java.time.Clock
 import java.time.Instant
@@ -188,18 +185,29 @@ fun EditEntryView(
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
         }
+
+        var descriptionFocused by remember { mutableStateOf(false) }
         OutlinedTextField(
             value = entry.description,
             label = { Text(text = stringResource(R.string.description)) },
             onValueChange = {
                 if (it.contains(newlineEtAlRegex)) {
-                    focusManager.moveFocus(FocusDirection.Next)
+                    focusManager.moveFocus(FocusDirection.Down)
                 } else {
                     entry.description = it
                 }
             },
             enabled = allowEditing,
-            modifier = Modifier.fillMaxWidth()
+            trailingIcon = {
+                TextFieldClearButton(
+                    textFieldValue = entry.description,
+                    clear = { entry.description = "" },
+                    isFocused = descriptionFocused
+                )
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .onFocusChanged { descriptionFocused = it.hasFocus }
         )
 
         SelectProjectDropdown(

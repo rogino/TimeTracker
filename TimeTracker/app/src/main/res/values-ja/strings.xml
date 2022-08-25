@@ -48,4 +48,10 @@
     <string name="last_stop_time">最新の終了時刻</string>
     <string name="login_page_title">Toggl Track へのログイン</string>
     <string name="total_group_duration">作業時間 %1$s</string>
+    <string name="show_password">パスワードを表示</string>
+    <string name="hide_password">パスワードの非表示</string>
+    <string name="clear_field">解除</string>
+    <string name="use_dark_theme">ダーク モード</string>
+    <string name="use_light_theme">ライト モード</string>
+    <string name="use_system_theme">システム テーマ</string>
 </resources>

@@ -156,8 +156,8 @@ fun makeRequestsShowingToastOnError(
 }
 
 @Composable
-fun TextFieldClearButton(textFieldValue: TextFieldValue, clear: () -> Unit, isFocused: Boolean) {
-    if (textFieldValue.text.isNotEmpty() && isFocused) {
+fun TextFieldClearButton(textFieldValue: String, clear: () -> Unit, isFocused: Boolean) {
+    if (textFieldValue.isNotEmpty() && isFocused) {
         IconButton(onClick = clear ) {
             Icon(
                 Icons.Filled.Clear,
@@ -166,4 +166,8 @@ fun TextFieldClearButton(textFieldValue: TextFieldValue, clear: () -> Unit, isFo
             )
         }
     }
+}
+@Composable
+fun TextFieldClearButton(textFieldValue: TextFieldValue, clear: () -> Unit, isFocused: Boolean) {
+    TextFieldClearButton(textFieldValue.text, clear, isFocused)
 }

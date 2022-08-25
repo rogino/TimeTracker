@@ -97,7 +97,6 @@ fun LoginView(
                 }
                 .verticalScroll(rememberScrollState())
                 .weight(1f, fill = false)
-                .border(1.dp, Color.Red)
         ) {
             if (with(density) { parentHeight.toDp() } > 500.dp) {
                 Image(
@@ -161,7 +160,10 @@ fun LoginView(
                                     else R.drawable.ic_baseline_visibility_off_24
                                 ),
                                 tint = MaterialTheme.colors.primary,
-                                contentDescription = "${if (loginViewModel.passwordVisible) "Hide" else "Show"} password"
+                                contentDescription = stringResource(
+                                    if (loginViewModel.passwordVisible) R.string.hide_password else
+                                        R.string.show_password
+                                )
                             )
                         }
                     }

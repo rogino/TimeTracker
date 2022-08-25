@@ -49,4 +49,10 @@
     <string name="cancel">Cancel</string>
     <string name="login_page_title">Login to Toggl Track</string>
     <string name="total_group_duration">Total %1$s</string>
+    <string name="clear_field">Clear</string>
+    <string name="show_password">Show password</string>
+    <string name="hide_password">Hide password</string>
+    <string name="use_light_theme">Use light theme</string>
+    <string name="use_dark_theme">Use dark theme</string>
+    <string name="use_system_theme">Use system theme</string>
 </resources>
