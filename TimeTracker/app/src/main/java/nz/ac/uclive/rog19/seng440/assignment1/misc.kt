@@ -6,6 +6,13 @@ import android.widget.Toast
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -76,12 +83,13 @@ val PaddingValues.top: Dp
 val PaddingValues.bottom: Dp
     get() = calculateBottomPadding()
 
-fun PaddingValues(horizontal: Dp = 0.dp, top: Dp = 0.dp, bottom: Dp = 0.dp): PaddingValues = PaddingValues(
-    start = horizontal,
-    top = top,
-    end = horizontal,
-    bottom = bottom
-)
+fun PaddingValues(horizontal: Dp = 0.dp, top: Dp = 0.dp, bottom: Dp = 0.dp): PaddingValues =
+    PaddingValues(
+        start = horizontal,
+        top = top,
+        end = horizontal,
+        bottom = bottom
+    )
 
 val PaddingValues.horizontal: Dp
     get() = (calculateStartPadding(LayoutDirection.Ltr) + calculateEndPadding(LayoutDirection.Ltr)) / 2
@@ -89,17 +97,18 @@ val PaddingValues.horizontal: Dp
 fun Instant.minusDays(days: Long): Instant {
     return this.minusSeconds(60 * 60 * 24 * days)
 }
+
 fun Instant.minusDays(days: Float): Instant {
     return this.minusSeconds((60f * 60f * 24f * days).toLong())
 }
+
 fun Instant.plusDays(days: Long): Instant {
     return this.plusSeconds(60 * 60 * 24 * days)
 }
+
 fun Instant.plusDays(days: Float): Instant {
     return this.plusSeconds((60f * 60f * 24f * days).toLong())
 }
-
-
 
 
 fun makeConcurrentRequests(
@@ -144,4 +153,17 @@ fun makeRequestsShowingToastOnError(
         },
         apiCalls = apiCalls
     )
+}
+
+@Composable
+fun TextFieldClearButton(textFieldValue: TextFieldValue, clear: () -> Unit, isFocused: Boolean) {
+    if (textFieldValue.text.isNotEmpty() && isFocused) {
+        IconButton(onClick = clear ) {
+            Icon(
+                Icons.Filled.Clear,
+                contentDescription = "Clear",
+                tint = MaterialTheme.colors.primary
+            )
+        }
+    }
 }
