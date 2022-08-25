@@ -125,6 +125,7 @@ fun TimeEntryListPage(
     zoneId: ZoneId = Clock.systemDefaultZone().zone,
     now: State<Instant> = mutableStateOf(Instant.now()),
     apiRequest: ApiRequest? = null,
+    context: Context,
     logout: (() -> Unit)? = null,
     goToEditEntryView: (() -> Unit)? = null,
     isDarkMode: Boolean? = null,
@@ -135,7 +136,6 @@ fun TimeEntryListPage(
     // Currently refreshing
     var currentlyUpdatingEntry by remember { mutableStateOf(false) }
     var coroutineScope = rememberCoroutineScope()
-    val context = LocalContext.current
 
     fun editEntry(entry: TimeEntry?) {
         model.currentlyEditedEntrySaveState = entry

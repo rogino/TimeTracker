@@ -1,10 +1,8 @@
 package nz.ac.uclive.rog19.seng440.assignment1.components
 
+import android.content.Context
 import android.util.Patterns
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
@@ -16,7 +14,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -57,6 +54,7 @@ class LoginViewModel : ViewModel() {
 @Composable
 fun LoginView(
     apiRequest: ApiRequest,
+    context: Context,
     contentPadding: PaddingValues = PaddingValues(),
     loginViewModel: LoginViewModel = viewModel(),
     onLogin: ((Me) -> Unit)? = null,
@@ -64,7 +62,6 @@ fun LoginView(
 
     val coroutineScope = rememberCoroutineScope()
     val density = LocalDensity.current
-    val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
     val focusManager = LocalFocusManager.current
 
@@ -240,6 +237,9 @@ fun LoginView(
 @Composable
 fun Login_Preview() {
     AppTheme {
-        LoginView(apiRequest = ApiRequest())
+        LoginView(
+            apiRequest = ApiRequest(),
+            context = LocalContext.current,
+        )
     }
 }

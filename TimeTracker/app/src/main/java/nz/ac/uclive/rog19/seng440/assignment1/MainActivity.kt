@@ -177,6 +177,7 @@ class MainActivity : ComponentActivity() {
                         composable("login") {
                             LoginView(
                                 apiRequest = apiRequest,
+                                context = baseContext,
                                 contentPadding = recommendedPadding
                             ) {
                                 preferences.saveCredentials(it.apiToken, it.defaultWorkspaceId)
@@ -203,6 +204,7 @@ class MainActivity : ComponentActivity() {
                                 model = model,
                                 now = now,
                                 apiRequest = apiRequest,
+                                context = baseContext,
                                 logout = {
                                     navController.navigate("login") {
                                         // Prevent return to entries page
@@ -234,6 +236,7 @@ class MainActivity : ComponentActivity() {
                                 model = model,
                                 now = now,
                                 apiRequest = apiRequest,
+                                context = baseContext,
                                 goBack = {
                                     navController.popBackStack()
                                 },

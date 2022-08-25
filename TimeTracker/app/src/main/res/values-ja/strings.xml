@@ -16,7 +16,7 @@
     <string name="start_time">開始時刻</string>
     <string name="back">戻る</string>
     <plurals name="api_error_invalid_credentials_x_attempts_left">
-        <item quantity="other">クレデンシャル無効　残り％d回</item>
+        <item quantity="other">クレデンシャル無効　残り％1$d回</item>
     </plurals>
     <string name="error_json_not_parsed">JSON 解析不可</string>
     <string name="no_entries">入力なし</string>

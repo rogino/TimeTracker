@@ -1,5 +1,6 @@
 package nz.ac.uclive.rog19.seng440.assignment1.components
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.layout.*
@@ -20,6 +21,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.insets.ui.TopAppBar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -31,6 +34,10 @@ import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
 
+class TinyVM: ViewModel() {
+    var isSaving by mutableStateOf(false)
+}
+
 @Composable
 fun EditEntryPage(
     model: GodModel,
@@ -38,21 +45,21 @@ fun EditEntryPage(
     zoneId: ZoneId = Clock.systemDefaultZone().zone,
     allowEditing: Boolean = true,
     apiRequest: ApiRequest,
+    context: Context,
     goBack: () -> Unit,
     contentPadding: PaddingValues = PaddingValues(),
+    vm: TinyVM = viewModel(),
     modifier: Modifier = Modifier
 ) {
     val entry = model.currentlyEditedEntry
     val canSave = entry.startTime != null && entry.startTime!!.isBefore(entry.endTime ?: now.value)
     val coroutineScope = rememberCoroutineScope()
-    val context = LocalContext.current
-    var isSaving by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
 
     fun save(payload: TimeEntry) {
-        isSaving = true
+        vm.isSaving = true
         focusManager.clearFocus()
-        makeRequestsShowingToastOnError(coroutineScope, context, { isSaving = false }, {
+        makeRequestsShowingToastOnError(coroutineScope, context, { vm.isSaving = false }, {
             val response = if (payload.id == null) {
                 apiRequest.newTimeEntry(payload)
             } else {
@@ -97,7 +104,7 @@ fun EditEntryPage(
                 actions = {
                     TextButton(
                         onClick = { save(entry.toTimeEntry()!!) },
-                        enabled = canSave && allowEditing && !isSaving,
+                        enabled = canSave && allowEditing && !vm.isSaving,
                         colors = ButtonDefaults.buttonColors(
                             contentColor = Color.White,
                             disabledContentColor = Color.Unspecified.copy(alpha = 0.6f),
@@ -122,17 +129,17 @@ fun EditEntryPage(
             allTags = model.tags,
             now = now,
             zoneId = zoneId,
-            allowEditing = allowEditing && !isSaving,
-            isSaving = isSaving,
+            allowEditing = allowEditing && !vm.isSaving,
+            isSaving = vm.isSaving,
             isCurrentOrNewestTimeEntry = entry.isOngoing || model.timeEntries.firstOrNull()?.id == entry.id,
             stopAndSaveEntry = {
                 save(it)
             },
             deleteEntry = { id ->
-                if (isSaving) return@EditEntryView
-                isSaving = true
+                if (vm.isSaving) return@EditEntryView
+                vm.isSaving = true
                 focusManager.clearFocus()
-                makeRequestsShowingToastOnError(coroutineScope, context, { isSaving = false }, {
+                makeRequestsShowingToastOnError(coroutineScope, context, { vm.isSaving = false }, {
                     apiRequest?.deleteEntry(id, entry.workspaceId)
                     model.deleteEntry(id)
                     withContext(Dispatchers.Main) {
@@ -450,6 +457,7 @@ fun EditEntry_Preview() {
             EditEntryPage(
                 model = mockModel,
                 apiRequest = ApiRequest(),
+                context = LocalContext.current,
                 goBack = {},
             )
         }
