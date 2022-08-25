@@ -191,7 +191,7 @@ fun TimeEntryListPage(
                             Text(text = stringResource(R.string.use_dark_theme))
                         }
                     }
-                    if (isDarkMode != true) {
+                    if (isDarkMode != false) {
                         DropdownMenuItem(onClick = { setTheme?.invoke(false) }) {
                             Text(text = stringResource(R.string.use_light_theme))
                         }

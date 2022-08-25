@@ -1,7 +1,7 @@
 package nz.ac.uclive.rog19.seng440.assignment1
 
-import android.util.Log
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
@@ -60,6 +60,8 @@ fun TimeEntryListItem(
         )
     }
 
+    val gray = if (MaterialTheme.colors.isLight) Color.DarkGray else Color.LightGray
+
     Column(
         modifier = Modifier
             .padding(vertical = 4.dp)
@@ -79,14 +81,15 @@ fun TimeEntryListItem(
                 fontStyle = if (empty) FontStyle.Italic else FontStyle.Normal,
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
-                color = if (empty) Color.DarkGray else Color.Unspecified,
+                color = if (empty) gray else Color.Unspecified,
                 modifier = Modifier.weight(1f)
             )
             durationText?.also {
                 Text(
                     text = durationText,
                     maxLines = 1,
-                    modifier = Modifier.width(IntrinsicSize.Max)
+                    modifier = Modifier
+                        .width(IntrinsicSize.Max)
                         .padding(start = 6.dp)
                 )
             }
