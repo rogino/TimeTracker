@@ -1,6 +1,7 @@
 package nz.ac.uclive.rog19.seng440.assignment1.components
 
 import android.content.Context
+import android.util.Log
 import android.util.Patterns
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -14,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -29,18 +31,17 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import nz.ac.uclive.rog19.seng440.assignment1.ApiRequest
+import nz.ac.uclive.rog19.seng440.assignment1.*
 import nz.ac.uclive.rog19.seng440.assignment1.PaddingValues
 import nz.ac.uclive.rog19.seng440.assignment1.R
-import nz.ac.uclive.rog19.seng440.assignment1.TextFieldClearButton
 import nz.ac.uclive.rog19.seng440.assignment1.model.Me
-import nz.ac.uclive.rog19.seng440.assignment1.newlineEtAlRegex
 import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.AppTheme
 
 class LoginViewModel : ViewModel() {
@@ -65,7 +66,7 @@ fun LoginView(
     val uriHandler = LocalUriHandler.current
     val focusManager = LocalFocusManager.current
 
-    var parentHeight by remember { mutableStateOf(0) }
+    var parentSize by remember { mutableStateOf(IntSize.Zero) }
 
     @Composable
     fun spacing() {
@@ -81,6 +82,9 @@ fun LoginView(
         verticalArrangement = Arrangement.Center,
         modifier = Modifier
             .fillMaxSize()
+            .onGloballyPositioned { coordinates ->
+                parentSize = coordinates.size
+            }
             .padding(contentPadding)
             .padding(WindowInsets.ime.asPaddingValues())
     ) {
@@ -89,13 +93,15 @@ fun LoginView(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxWidth()
-                .onGloballyPositioned { coordinates ->
-                    parentHeight = coordinates.boundsInParent().size.height.toInt()
-                }
                 .verticalScroll(rememberScrollState())
                 .weight(1f, fill = false)
         ) {
-            if (with(density) { parentHeight.toDp() } > 500.dp) {
+            /// Portrait and height greater than some minimum
+            if (parentSize.width.toFloat() / parentSize.height.toFloat() < 1f &&
+                with(density) {
+                    parentSize.height.toDp()
+                } > 500.dp
+            ) {
                 Image(
                     painterResource(R.drawable.logo_no_margins_512),
                     contentDescription = stringResource(R.string.icon),
