@@ -140,6 +140,7 @@ class GodModel(
             {
                 apiRequest?.getStringTags()?.let {
                     tags.clear()
+
                     tags.addAll(it)
                 }
             }
