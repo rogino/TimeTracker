@@ -2,14 +2,15 @@ package nz.ac.uclive.rog19.seng440.assignment1
 
 import android.content.Context
 import android.util.Log
-import android.widget.Toast
 import androidx.compose.animation.*
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
@@ -29,12 +30,16 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.insets.ui.TopAppBar
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.SwipeRefreshIndicator
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
-import kotlinx.coroutines.*
-import nz.ac.uclive.rog19.seng440.assignment1.model.*
+import nz.ac.uclive.rog19.seng440.assignment1.model.GodModel
+import nz.ac.uclive.rog19.seng440.assignment1.model.Project
+import nz.ac.uclive.rog19.seng440.assignment1.model.TimeEntry
+import nz.ac.uclive.rog19.seng440.assignment1.model.mockModel
 import nz.ac.uclive.rog19.seng440.assignment1.ui.theme.AppTheme
 import java.time.*
 import java.time.format.DateTimeFormatter
@@ -118,6 +123,11 @@ fun OverflowMenu(content: @Composable () -> Unit) {
     }
 }
 
+
+class ListPageViewModel : ViewModel() {
+    var isDownloading by mutableStateOf(false)
+}
+
 @Composable
 fun TimeEntryListPage(
     modifier: Modifier = Modifier,
@@ -131,7 +141,8 @@ fun TimeEntryListPage(
     isDarkMode: Boolean? = null,
     setTheme: ((Boolean?) -> Unit)? = null,
     isRefreshing: MutableState<Boolean> = mutableStateOf(false),
-    contentPadding: PaddingValues = PaddingValues()
+    contentPadding: PaddingValues = PaddingValues(),
+    vm: ListPageViewModel = viewModel(),
 ) {
     // Currently refreshing
     var currentlyUpdatingEntry by remember { mutableStateOf(false) }
@@ -142,6 +153,7 @@ fun TimeEntryListPage(
         model.currentlyEditedEntry = (entry ?: TimeEntry()).toObservable()
         goToEditEntryView?.invoke()
     }
+
     fun stopEntry(entry: TimeEntry) {
         currentlyUpdatingEntry = true
         makeRequestsShowingToastOnError(
@@ -156,6 +168,7 @@ fun TimeEntryListPage(
             }
         )
     }
+
     fun resumeEntry(entry: TimeEntry) {
         currentlyUpdatingEntry = true
         makeRequestsShowingToastOnError(
@@ -220,8 +233,8 @@ fun TimeEntryListPage(
     }, bottomBar = {
         val height = with(LocalDensity.current) { 100.dp.roundToPx() }
         AnimatedVisibility(visible = model.currentEntry != null,
-        enter = slideInVertically { height } + fadeIn(),
-        exit = slideOutVertically { height } + fadeOut()
+            enter = slideInVertically { height } + fadeIn(),
+            exit = slideOutVertically { height } + fadeOut()
         ) {
             val bottomPadding = max(
                 WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
@@ -232,7 +245,8 @@ fun TimeEntryListPage(
                 detectTapGestures(
                     onTap = {
                         model.currentlyEditedEntrySaveState = model.currentEntry
-                        model.currentlyEditedEntry = (model.currentEntry ?: TimeEntry()).toObservable()
+                        model.currentlyEditedEntry =
+                            (model.currentEntry ?: TimeEntry()).toObservable()
                         goToEditEntryView?.invoke()
                     },
                     onLongPress = { dropdownOpen = true }
@@ -259,7 +273,7 @@ fun TimeEntryListPage(
                     dismiss = { dropdownOpen = false },
                     editEntry = ::editEntry,
                     stopEntry = ::stopEntry,
-                    resumeEntry = ::resumeEntry,
+                    resumeEntry = ::resumeEntry
                 )
             }
         }
@@ -274,12 +288,15 @@ fun TimeEntryListPage(
                 onRefresh = {
                     apiRequest?.let { apiRequest ->
                         isRefreshing.value = true
-                        model.refreshEverything(coroutineScope = coroutineScope, apiRequest = apiRequest, onEnd = {
-                            isRefreshing.value = false
-                            it?.let {
-                                showErrorToast(context = context, error = it)
-                            }
-                        })
+                        model.refreshEverything(
+                            coroutineScope = coroutineScope,
+                            apiRequest = apiRequest,
+                            onEnd = {
+                                isRefreshing.value = false
+                                it?.let {
+                                    showErrorToast(context = context, error = it)
+                                }
+                            })
                     }
                 },
                 indicator = { state, trigger ->
@@ -303,7 +320,25 @@ fun TimeEntryListPage(
                         contentPadding = contentPadding,
                         editEntry = ::editEntry,
                         stopEntry = ::stopEntry,
-                        resumeEntry = ::resumeEntry
+                        resumeEntry = ::resumeEntry,
+                        loadMore = {
+                            var oldest = model.timeEntries.lastOrNull()?.startTime
+                            if (oldest == null || vm.isDownloading) {
+                                return@TimeEntryListView
+                            }
+                            vm.isDownloading = true
+                            makeRequestsShowingToastOnError(coroutineScope, context, {
+                                vm.isDownloading = false
+                            }, {
+                                Log.d(TAG, "Downloading older entries, ${oldest}")
+                                apiRequest?.getTimeEntries(
+                                    startDate = oldest.minusDays(7),
+                                    endDate = oldest.plusDays(1)
+                                )?.let { model.addEntries(it) }
+                            })
+
+
+                        }
                     )
                 } else {
                     Column(
@@ -343,6 +378,7 @@ fun TimeEntryListPage(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TimeEntryListView(
     modifier: Modifier = Modifier,
@@ -356,11 +392,17 @@ fun TimeEntryListView(
     editEntry: ((TimeEntry?) -> Unit)? = null,
     stopEntry: ((TimeEntry) -> Unit)? = null,
     resumeEntry: ((TimeEntry) -> Unit)? = null,
+    loadMore: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val firstItemId = entries.firstOrNull()?.id
 
-    LazyColumn(modifier = modifier) {
+    val listState = rememberLazyListState()
+    listState.OnBottomReached {
+        Log.d(TAG, "Load more")
+        loadMore?.invoke()
+    }
+    LazyColumn(state = listState, modifier = modifier) {
         // TODO somehow cache, or send in LocalDate as a state object: don't read now.value
         // (and don't use Instant.now()) in order to prevent unnecessary redraws
         groupEntries(entries, zoneId, Instant.now(), context).forEachIndexed { i, group ->

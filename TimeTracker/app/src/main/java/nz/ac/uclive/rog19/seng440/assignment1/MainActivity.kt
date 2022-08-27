@@ -99,7 +99,7 @@ class PreferenceWrapper(val preferences: SharedPreferences) {
 
 class MainActivity : ComponentActivity() {
     private var model: GodModel by Delegates.notNull()
-    private var vm: TinyVM by Delegates.notNull()
+    private var vm: MainActivityViewModel by Delegates.notNull()
     private lateinit var handler: Handler
     private lateinit var updateTask: Runnable
     private lateinit var apiRequest: ApiRequest
@@ -111,12 +111,12 @@ class MainActivity : ComponentActivity() {
         return model
     }
 
-    class TinyVM : ViewModel() {
+    class MainActivityViewModel : ViewModel() {
         var isRefreshing = mutableStateOf(false)
     }
 
-    private fun makeTinyVm(): TinyVM {
-        val vm: TinyVM by viewModels()
+    private fun makeVm(): MainActivityViewModel {
+        val vm: MainActivityViewModel by viewModels()
         return vm
     }
 
@@ -125,7 +125,7 @@ class MainActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         model = makeGodModel()
-        vm = makeTinyVm()
+        vm = makeVm()
         preferences = PreferenceWrapper(
             getSharedPreferences(timeTrackerPreferencesFileName, Context.MODE_PRIVATE)
         )

@@ -56,7 +56,7 @@ fun TimeEntryListItem(
         durationFormatter(
             duration = Duration.between(timeEntry.startTime, it),
             // show all components if ongoing
-            numComponents = if (timeEntry.isOngoing) 10 else 2
+                numComponents = if (timeEntry.isOngoing) 10 else 2
         )
     }
 

@@ -34,7 +34,7 @@ import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
 
-class TinyVM: ViewModel() {
+class EditEntryPageViewModel: ViewModel() {
     var isSaving by mutableStateOf(false)
 }
 
@@ -48,7 +48,7 @@ fun EditEntryPage(
     context: Context,
     goBack: () -> Unit,
     contentPadding: PaddingValues = PaddingValues(),
-    vm: TinyVM = viewModel(),
+    vm: EditEntryPageViewModel = viewModel(),
     modifier: Modifier = Modifier
 ) {
     val entry = model.currentlyEditedEntry
