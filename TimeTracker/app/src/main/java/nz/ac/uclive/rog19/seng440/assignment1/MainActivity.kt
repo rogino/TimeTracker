@@ -25,6 +25,9 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
+import androidx.security.crypto.MasterKeys
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -41,7 +44,23 @@ import kotlin.properties.Delegates
 
 val timeTrackerPreferencesFileName = "main"
 
-class PreferenceWrapper(val preferences: SharedPreferences) {
+class PreferenceWrapper(context: Context, fileName: String = timeTrackerPreferencesFileName) {
+    private val preferences: SharedPreferences
+    init {
+        val builder = MasterKey.Builder(context)
+        builder.setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+
+        val masterKey = builder.build()
+
+        preferences = EncryptedSharedPreferences.create(
+            context,
+            fileName,
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    }
+
     private val API_KEY = "API_KEY"
     private val WORKSPACE_ID = "WORKSPACE_ID"
     private val THEME = "COLOR_THEME"
@@ -126,9 +145,7 @@ class MainActivity : ComponentActivity() {
 
         model = makeGodModel()
         vm = makeVm()
-        preferences = PreferenceWrapper(
-            getSharedPreferences(timeTrackerPreferencesFileName, Context.MODE_PRIVATE)
-        )
+        preferences = PreferenceWrapper(baseContext)
 
         var isDarkMode = mutableStateOf<Boolean?>(preferences.isDarkMode())
 
@@ -280,6 +297,10 @@ class MainActivity : ComponentActivity() {
         handler.removeCallbacks(updateTask)
         if (apiRequest.authenticated) {
             lifecycleScope.launch {
+                if (model.timeEntries.isEmpty() || model.projects.isEmpty() || model.tags.isEmpty()) {
+                    return@launch
+                }
+
                 Log.d(TAG, "Saving model to disk")
                 GodModelSerialized.saveModelToFile(baseContext, model)
                 Log.d(TAG, "Saved model to disk")

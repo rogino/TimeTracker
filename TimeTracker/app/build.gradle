@@ -66,6 +66,7 @@ dependencies {
     implementation 'com.squareup.okhttp3:okhttp:4.10.0'
 
     implementation "io.github.vanpra.compose-material-dialogs:datetime:0.8.1-rc"
+    implementation 'androidx.security:security-crypto-ktx:1.1.0-alpha03'
 
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.3'
