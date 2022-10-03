@@ -1,6 +1,12 @@
 # TimeTracker
 
-![App icon of a minimal, colorful stopwatch](TimeTracker/icon/TimeTrackerLogoNoMargins.png)
+<p align="center">
+  <img
+    width="100"
+    src="TimeTracker/icon/TimeTrackerLogoNoMargins.png"
+    alt="App icon of a minimal, colorful stopwatch"
+  />
+</p>
 
 TimeTracker is a basic Compose-based Android app heavily inspired by the iOS app [Timery](https://timeryapp.com) by [Joe Hribar](https://twitter.com/joehribar)
 as part of my SENG440 Mobile Developement course.
@@ -25,5 +31,16 @@ It cannot:
 
 The app has been tested down to Android 6.
 
-![Screenshot of main page](images/Main%20Content.png)
-![Screenshot of edit entry page](images/Edit%20Screen%2C%20Expanded.png)
+<p align="center">
+  <img
+    alt="Screenshot of the main content page"
+    src="images/Main%20Content.png"
+    width="45%"
+  />
+&nbsp; &nbsp; &nbsp; &nbsp;
+  <img
+    alt="Screenshot of edit entry page"
+    src="images/Edit%20Screen%2C%20Expanded.png"
+    width="45%"
+  />
+</p>
