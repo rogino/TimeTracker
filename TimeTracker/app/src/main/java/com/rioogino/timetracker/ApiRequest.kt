@@ -2,6 +2,7 @@ package com.rioogino.timetracker
 
 import android.content.Context
 import android.util.Log
+// import com.beust.klaxon.Json // No longer needed
 import com.beust.klaxon.Klaxon
 import kotlinx.coroutines.suspendCancellableCoroutine
 import com.rioogino.timetracker.model.*
@@ -15,6 +16,11 @@ import java.net.UnknownHostException
 import java.time.Instant
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+
+// --- Listener interface for Quota Updates ---
+interface QuotaUpdateListener {
+    fun onQuotaUpdated(remaining: Int?, resetTimestamp: Instant?) // Changed resetsInSecs to resetTimestamp
+}
 
 class TogglApiException(message: String) : Exception(message)
 
@@ -54,8 +60,8 @@ class ApiRequest {
     var defaultWorkspaceId: Int? = null
 
     var client: OkHttpClient? = null
+    var quotaListener: QuotaUpdateListener? = null
 
-    /// Used for localized error messages
     var context: Context? = null
 
     init {
@@ -63,12 +69,10 @@ class ApiRequest {
 //        workspaceId = WORKSPACE_ID
     }
 
-
     private fun buildClientWithAuthenticator(apiKey: String): OkHttpClient {
         return OkHttpClient.Builder()
             .addInterceptor(BasicAuthInterceptor(apiKey, "api_token"))
             .build()
-
     }
 
     val buildUrl: HttpUrl.Builder
@@ -110,16 +114,14 @@ class ApiRequest {
         Log.d(TAG, "Get current time entry")
         get("${domain}/${rootPath}/me/time_entries/current", client!!)?.let {
             if (it != "null") {
-                // if no timer currently active, returns `null` which cannot be parsed as JSON
                 val entry = jsonConverter.parse<TimeEntry>(it)
                 Log.d(TAG, "Get current time entry(id = ${entry?.id})")
+                return entry
             }
         }
         return null
     }
 
-    // api/v9/me/time_entries/current is set, but the end time is the previously set value, regardless
-    // of if end time is not sent or is sent as null
     suspend fun updateTimeEntryByDeletingAndCreatingBecauseTogglV9ApiSucks(entry: TimeEntry): TimeEntry? {
         val response = newTimeEntry(entry = entry.copy(id = null))
         if (entry.id != null) {
@@ -136,31 +138,31 @@ class ApiRequest {
         Log.d(TAG, jsonConverter.toJsonString(entry))
         post(url, jsonConverter.toJsonString(entry).toRequestBody(jsonType), put = true, client!!)?.let {
             Log.d(TAG, it)
-            val entry = jsonConverter.parse<TimeEntry>(it)
-            Log.d(TAG, "Time entry(id=${entry?.id}) updated")
-            return entry
+            val updatedEntry = jsonConverter.parse<TimeEntry>(it)
+            Log.d(TAG, "Time entry(id=${updatedEntry?.id}) updated")
+            return updatedEntry
         }
         return null
     }
 
     suspend fun newTimeEntry(entry: TimeEntry): TimeEntry? {
         if (entry.workspaceId == null) {
-            entry.workspaceId = WORKSPACE_ID
+            entry.workspaceId = workspaceId ?: defaultWorkspaceId 
         }
         var url = buildUrl
-            .addPathSegments("workspaces/${workspaceId}/time_entries")
+            .addPathSegments("workspaces/${entry.workspaceId}/time_entries")
             .build()
-        Log.d(TAG, "Create time entry")
+        Log.d(TAG, "Create time entry in workspace ${entry.workspaceId}")
         post(url, jsonConverter.toJsonString(entry).toRequestBody(jsonType), put = false, client!!)?.let {
-            val entry = jsonConverter.parse<TimeEntry>(it)
-            Log.d(TAG, "Time entry(id = ${entry?.id}) created")
-            return entry
+            val createdEntry = jsonConverter.parse<TimeEntry>(it)
+            Log.d(TAG, "Time entry(id = ${createdEntry?.id}) created")
+            return createdEntry
         }
         return null
     }
 
     suspend fun authenticate(email: String, password: String): Me? {
-        val client = OkHttpClient.Builder()
+        val tempClient = OkHttpClient.Builder()
             .addInterceptor(BasicAuthInterceptor(email, password))
             .build()
 
@@ -169,14 +171,21 @@ class ApiRequest {
             .build()
 
         Log.d(TAG, "Authenticate user with email=$email")
-        get(url, client)?.let { body ->
-            return jsonConverter.parse<Me>(body)?.also {
-                apiKey = it.apiToken
-                defaultWorkspaceId = it.defaultWorkspaceId
-                Log.d(TAG, "User authenticated, set workspace to ${it.defaultWorkspaceId}")
+        try {
+            get(url, tempClient)?.let { body ->
+                return jsonConverter.parse<Me>(body)?.also {
+                    this.apiKey = it.apiToken
+                    this.defaultWorkspaceId = it.defaultWorkspaceId
+                    Log.d(TAG, "User authenticated, set workspace to ${it.defaultWorkspaceId}")
+                }
             }
+        } catch (e: TogglApiException) {
+            Log.e(TAG, "Authentication failed: ${e.message}")
+            throw e
+        } catch (e: Exception) {
+            Log.e(TAG, "Generic error during authentication: ${e.message}", e)
+            throw TogglApiException(context?.getString(R.string.api_error_authentication_failed) ?: "Authentication failed.")
         }
-
         return null
     }
 
@@ -190,7 +199,6 @@ class ApiRequest {
 
     suspend fun deleteEntry(entry: TimeEntry): Boolean {
         if (entry.id == null) return false
-
         deleteEntry(entry.id!!, entry.workspaceId)
         return true
     }
@@ -204,7 +212,6 @@ class ApiRequest {
             urlBuilder = if (endDate == null) {
                 urlBuilder.addQueryParameter("since", (it.toEpochMilli() / 1000).toString())
             } else {
-                // v9 API: YYYY-MM-DD
                 urlBuilder.addQueryParameter("start_date", it.toString().substring(0..9))
             }
         }
@@ -218,11 +225,13 @@ class ApiRequest {
 
         val url = urlBuilder.build()
         Log.d(TAG, "Get time entries, url = $url")
-        get(url, client!!).let {
-            Log.d(TAG, "Receive time entries response, length = ${it.length}")
-            val entries = jsonConverter.parseArray<TimeEntry>(it)
-            Log.d(TAG, "Retrieve ${entries?.count()} entries, date range ${entries?.last()?.startTime} - ${entries?.first()?.startTime}")
-            return entries
+        get(url, client!!).let { 
+             if (it != null) {
+                Log.d(TAG, "Receive time entries response, length = ${it.length}")
+                val entries = jsonConverter.parseArray<TimeEntry>(it)
+                Log.d(TAG, "Retrieve ${entries?.count()} entries, date range ${entries?.lastOrNull()?.startTime} - ${entries?.firstOrNull()?.startTime}")
+                return entries
+            }
         }
         return null
     }
@@ -231,7 +240,6 @@ class ApiRequest {
         return url.toHttpUrlOrNull()?.let { get(it, client) }
     }
 
-    /// Make HTTP GET request with Toggl credentials and return response body as string
     private suspend fun get(url: HttpUrl, client: OkHttpClient): String {
         val request: Request = Builder()
             .url(url)
@@ -245,8 +253,6 @@ class ApiRequest {
         return url.toHttpUrlOrNull()?.let { post(it, body, put, client) }
     }
 
-    /// Make HTTP POST request with Toggl credentials, the body being some JSON,
-    // and return response body as string
     private suspend fun post(url: HttpUrl, body: RequestBody, put: Boolean = false, client: OkHttpClient): String {
         var builder = Builder().url(url)
         builder = if (put) builder.put(body) else builder.post(body)
@@ -273,12 +279,19 @@ class ApiRequest {
                             )
                         )
                     }
-                    Log.e(TAG, "ERROR MAKING API REQUEST")
-                    Log.e(TAG, e.stackTraceToString())
+                    Log.e(TAG, "ERROR MAKING API REQUEST", e)
                     return continuation.resumeWithException(e)
                 }
 
                 override fun onResponse(call: Call, response: Response) {
+                    val remainingQuota = response.header("X-Toggl-Quota-Remaining")?.toIntOrNull()
+                    val resetsInSecsValue = response.header("X-Toggl-Quota-Resets-In")?.toIntOrNull()
+                    
+                    val actualResetTimestamp = resetsInSecsValue?.let {
+                        Instant.now().plusSeconds(it.toLong())
+                    }
+                    quotaListener?.onQuotaUpdated(remainingQuota, actualResetTimestamp)
+
                     if (response.isSuccessful) {
                         if (response.body == null) {
                             response.close()
@@ -290,17 +303,19 @@ class ApiRequest {
                         response.close()
                         return continuation.resume(body)
                     }
+                    
                     Log.e(TAG, "ERROR ${response.code} FROM API SERVER")
-                    val body = response.body?.string()
-                    Log.e(TAG, response.headers!!.toString())
-                    Log.e(TAG, body ?: "no body received")
+                    val errorBody = response.body?.string()
+                    Log.e(TAG, response.headers.toString())
+                    Log.e(TAG, errorBody ?: "no error body received")
 
                     val exception = when (response.code) {
-                        429 -> {
-                            TogglApiException(
-                                context?.getString(R.string.api_error_rate_limit) ?: "Toggl rate limit"
-                            )
-                        }
+                        402 -> TogglApiException(
+                            context?.getString(R.string.api_error_quota_exceeded) ?: "API quota exceeded. Please wait."
+                        )
+                        429 -> TogglApiException(
+                            context?.getString(R.string.api_error_rate_limit) ?: "Toggl rate limit (Too many requests)"
+                        )
                         403 -> {
                             val attemptsRemaining = response.headers["x-remaining-login-attempts"]?.toIntOrNull()
                             val message = if (attemptsRemaining == null) {
@@ -315,20 +330,21 @@ class ApiRequest {
                             }
                             TogglApiException(message)
                         }
-                        401 -> {
-                            TogglApiException(
-                                context?.getString(R.string.api_error_not_authorized) ?: "Not authorized"
-                            )
-                        }
-                        else -> {
-                            TogglApiException(
-                                context?.getString(R.string.api_error_http_code, response.code, body ?: "") ?: "Error ${response.code}")
-                        }
+                        401 -> TogglApiException(
+                            context?.getString(R.string.api_error_not_authorized) ?: "Not authorized"
+                        )
+                        else -> TogglApiException(
+                            context?.getString(R.string.api_error_http_code, response.code, errorBody ?: "") ?: "Error ${response.code}"
+                        )
                     }
                     response.close()
                     return continuation.resumeWithException(exception)
                 }
             })
         }
+    }
+
+    companion object {
+        private const val TAG = "ApiRequest"
     }
 }

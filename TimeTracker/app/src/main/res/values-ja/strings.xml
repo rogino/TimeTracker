@@ -59,4 +59,15 @@
     <string name="not_set">未設定</string>
     <string name="select_date">日付を選択</string>
     <string name="select_time">時間を選択</string>
+    <string name="api_error_quota_exceeded">APIの利用可能回数を超えました。後でもう一度お試しください。</string>
+    <string name="api_error_authentication_failed">認証に失敗しました。認証情報を確認してください。</string>
+    <string name="quota_remaining_format">残りクォータ: %d</string>
+    <string name="quota_resets_format">リセットまで: %d秒</string>
+    <string name="quota_resets_in_seconds">リセットまで: %d秒</string>
+    <string name="quota_resets_in_minutes">リセットまで: %d分</string>
+    <string name="quota_resets_in_hours_minutes">リセットまで: %d時間%d分</string>
+    <string name="quota_resets_at_time">リセット時刻: %s</string>
+    <string name="quota_resets_now">リセット: 今すぐ</string>
+    <string name="quota_unknown">クォータ: 不明</string>
+    <string name="resets_unknown">リセット: 不明</string>
 </resources>

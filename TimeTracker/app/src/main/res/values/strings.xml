@@ -60,4 +60,15 @@
     <string name="not_set">Not set</string>
     <string name="select_date">Select date</string>
     <string name="select_time">Select time</string>
+    <string name="api_error_quota_exceeded">API quota exceeded. Please try again later.</string>
+    <string name="api_error_authentication_failed">Authentication failed. Please check your credentials.</string>
+    <string name="quota_remaining_format">Quota: %d</string>
+    <string name="quota_resets_format">Resets in: %ds</string>
+    <string name="quota_resets_in_seconds">Resets in: %ds</string>
+    <string name="quota_resets_in_minutes">Resets in: %d min</string>
+    <string name="quota_resets_in_hours_minutes">Resets in: %dh %dm</string>
+    <string name="quota_resets_at_time">Resets at: %s</string>
+    <string name="quota_resets_now">Resets: Now</string>
+    <string name="quota_unknown">Quota: Unknown</string>
+    <string name="resets_unknown">Resets: Unknown</string>
 </resources>

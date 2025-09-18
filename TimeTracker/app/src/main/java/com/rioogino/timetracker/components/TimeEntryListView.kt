@@ -48,10 +48,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
-// import androidx.compose.ui.unit.LayoutDirection // Not needed for this fix
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
-// import androidx.compose.ui.unit.sp // Not directly used, Text styles come from MaterialTheme
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.rioogino.timetracker.ApiRequest // Needed for preview
@@ -152,6 +150,37 @@ fun OverflowMenu(content: @Composable () -> Unit) {
     }
 }
 
+// Helper function to format quota reset time
+private fun formatQuotaResetTime(resetTimestamp: Instant?, now: Instant, context: Context, zoneId: ZoneId): String {
+    if (resetTimestamp == null) {
+        return context.getString(R.string.resets_unknown)
+    }
+
+    val durationUntilReset = Duration.between(now, resetTimestamp)
+
+    if (durationUntilReset.isNegative || durationUntilReset.isZero) {
+        return context.getString(R.string.quota_resets_now)
+    }
+
+    val totalSeconds = durationUntilReset.seconds
+
+    return when {
+        totalSeconds < 60 -> context.getString(R.string.quota_resets_in_seconds, totalSeconds)
+        totalSeconds < 3600 -> { // Less than 1 hour
+            val minutes = totalSeconds / 60
+            context.getString(R.string.quota_resets_in_minutes, minutes)
+        }
+        totalSeconds < 6 * 3600 -> { // Less than 6 hours
+            val hours = totalSeconds / 3600
+            val remainingMinutes = (totalSeconds % 3600) / 60
+            context.getString(R.string.quota_resets_in_hours_minutes, hours, remainingMinutes)
+        }
+        else -> {
+            val formatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withZone(zoneId)
+            context.getString(R.string.quota_resets_at_time, formatter.format(resetTimestamp))
+        }
+    }
+}
 
 class ListPageViewModel : ViewModel() {
     var isDownloading by mutableStateOf(false)
@@ -165,17 +194,18 @@ fun TimeEntryListPage(
     zoneId: ZoneId = Clock.systemDefaultZone().zone,
     now: State<Instant> = remember { mutableStateOf(Instant.now()) }, 
     apiRequest: ApiRequest? = null,
-    context: Context,
+    context: Context, // Retained for other uses, localContext used for reset time string
     logout: (() -> Unit)? = null,
     goToEditEntryView: (() -> Unit)? = null,
     isDarkMode: Boolean? = null,
     setTheme: ((Boolean?) -> Unit)? = null,
     isRefreshing: MutableState<Boolean> = remember { mutableStateOf(false) }, 
-    contentPadding: PaddingValues = PaddingValues(), // This comes from Scaffold
+    contentPadding: PaddingValues = PaddingValues(),
     vm: ListPageViewModel = viewModel(),
 ) {
     var currentlyUpdatingEntry by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
+    val localContext = LocalContext.current // Use LocalContext for composable-specific context needs
 
     fun editEntry(entry: TimeEntry?) {
         model.currentlyEditedEntrySaveState = entry
@@ -187,7 +217,7 @@ fun TimeEntryListPage(
         currentlyUpdatingEntry = true
         makeRequestsShowingToastOnError(
             coroutineScope,
-            context,
+            localContext, // Use localContext for toast
             { currentlyUpdatingEntry = false },
             {
                 apiRequest?.updateTimeEntry(entry.copy(endTime = Instant.now()))
@@ -202,7 +232,7 @@ fun TimeEntryListPage(
         currentlyUpdatingEntry = true
         makeRequestsShowingToastOnError(
             coroutineScope,
-            context,
+            localContext, // Use localContext for toast
             { currentlyUpdatingEntry = false },
             {
                 apiRequest?.updateTimeEntryByDeletingAndCreatingBecauseTogglV9ApiSucks(
@@ -247,6 +277,27 @@ fun TimeEntryListPage(
                                 onClick = { setTheme?.invoke(false) }
                             )
                         }
+                        Divider()
+                        val remaining = model.apiQuotaRemaining
+                        val resetTimestamp = model.apiQuotaResetTimestamp
+
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = if (remaining != null) stringResource(R.string.quota_remaining_format, remaining)
+                                           else stringResource(R.string.quota_unknown)
+                                )
+                            },
+                            onClick = {},
+                            enabled = false
+                        )
+                        DropdownMenuItem(
+                            text = {
+                                Text(text = formatQuotaResetTime(resetTimestamp, now.value, localContext, zoneId))
+                            },
+                            onClick = {},
+                            enabled = false
+                        )
                     }
                 }
             )
@@ -301,7 +352,7 @@ fun TimeEntryListPage(
                         zoneId = zoneId,
                         modifier = Modifier
                             .padding(horizontal = 16.dp) 
-                            .padding(bottom = bottomPaddingForCurrentEntry, top = 6.dp), // Restored padding
+                            .padding(bottom = bottomPaddingForCurrentEntry, top = 6.dp),
                     )
                     TimeEntryListItemDropdownMenu(
                         entry = entry,
@@ -317,7 +368,7 @@ fun TimeEntryListPage(
                 }
             }
         }
-    ) { scaffoldPaddingValues -> // This is the padding from Scaffold for its content area
+    ) { scaffoldPaddingValues ->
         val pullRefreshState = rememberPullRefreshState(isRefreshing.value, {
             apiRequest?.let { currentApiRequest ->
                 isRefreshing.value = true
@@ -327,7 +378,7 @@ fun TimeEntryListPage(
                     onEnd = {
                         isRefreshing.value = false
                         it?.let {
-                            showErrorToast(context = context, error = it)
+                            showErrorToast(context = localContext, error = it) // Use localContext
                         }
                     })
             }
@@ -335,19 +386,18 @@ fun TimeEntryListPage(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(scaffoldPaddingValues) // Apply Scaffold's padding here
+                .padding(scaffoldPaddingValues)
                 .pullRefresh(pullRefreshState)
         ) {
             if (model.timeEntries.isNotEmpty()) {
                 TimeEntryListView(
-                    modifier = modifier, // Pass the original modifier from TimeEntryListPage parameters
+                    modifier = modifier,
                     entries = model.timeEntries,
                     projects = model.projects,
                     entryCurrentlyOngoing = model.currentEntry != null,
                     lastEntryStopTime = { model.lastEntryStopTime() },
                     zoneId = zoneId,
                     now = now,
-                    // Pass the scaffoldPaddingValues to TimeEntryListView so it can handle bottom padding for nav bars
                     contentPaddingForList = scaffoldPaddingValues, 
                     editEntry = ::editEntry,
                     stopEntry = ::stopEntry,
@@ -358,7 +408,7 @@ fun TimeEntryListPage(
                             return@TimeEntryListView
                         }
                         vm.isDownloading = true
-                        makeRequestsShowingToastOnError(coroutineScope, context, {
+                        makeRequestsShowingToastOnError(coroutineScope, localContext, { // Use localContext
                             vm.isDownloading = false
                         }, {
                             Log.d(TAG, "Downloading older entries, ${oldest}")
@@ -412,7 +462,7 @@ fun TimeEntryListView(
     lastEntryStopTime: (() -> Instant?)? = null,
     zoneId: ZoneId = Clock.systemDefaultZone().zone,
     now: State<Instant> = remember { mutableStateOf(Instant.now()) }, 
-    contentPaddingForList: PaddingValues = PaddingValues(), // Renamed for clarity, gets scaffoldPaddingValues
+    contentPaddingForList: PaddingValues = PaddingValues(),
     editEntry: ((TimeEntry?) -> Unit)? = null,
     stopEntry: ((TimeEntry) -> Unit)? = null,
     resumeEntry: ((TimeEntry) -> Unit)? = null,
@@ -428,8 +478,7 @@ fun TimeEntryListView(
     }
     LazyColumn(
         state = listState, 
-        modifier = modifier, // Removed horizontal padding from here
-        // Apply bottom padding from the Scaffold to ensure last item is not obscured by system bars
+        modifier = modifier,
         contentPadding = PaddingValues(bottom = contentPaddingForList.calculateBottomPadding()) 
     ) {
         groupEntries(entries, zoneId, now.value, context).forEachIndexed { i, group -> 
@@ -438,7 +487,7 @@ fun TimeEntryListView(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 8.dp, horizontal = 16.dp), // Item content padding
+                            .padding(vertical = 8.dp, horizontal = 16.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.Bottom
                     ) {
@@ -458,7 +507,6 @@ fun TimeEntryListView(
 
             items(items = group.entries, key = { it.id ?: java.util.UUID.randomUUID().toString() }) { entry -> 
                 Divider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 0.5.dp) 
-                // Box for each item also has horizontal padding for its content
                 Box(modifier = Modifier.padding(horizontal = 16.dp)) { 
                     var dropdownOpen by remember(entry.id) { mutableStateOf(false) }
                     TimeEntryListItem(
@@ -575,7 +623,6 @@ fun TimeEntryListView_Preview_Light() {
                 entries = mockModel.timeEntries,
                 projects = mockModel.projects,
                 entryCurrentlyOngoing = false,
-                // For preview, simulate some edge padding that might come from a Scaffold
                 contentPaddingForList = PaddingValues(bottom = 56.dp) 
             )
         }
@@ -603,11 +650,11 @@ fun TimeEntryListView_Preview_Dark() {
 fun TimeEntryListPage_Preview_Light() {
     AppTheme(useDarkTheme = false) {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+            mockModel.onQuotaUpdated(25, Instant.now().plusSeconds(3500L)) 
             TimeEntryListPage(
                 model = mockModel,
                 apiRequest = ApiRequest(),
                 context = LocalContext.current,
-                // contentPadding for TimeEntryListPage is typically PaddingValues() unless it's nested further
                 contentPadding = PaddingValues(0.dp), 
                 vm = ListPageViewModel()
             )
@@ -621,6 +668,7 @@ fun TimeEntryListPage_Preview_Light() {
 fun TimeEntryListPage_Preview_Dark() {
     AppTheme(useDarkTheme = true) {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+            mockModel.onQuotaUpdated(5, Instant.now().plusSeconds(120L))
             TimeEntryListPage(
                 model = mockModel,
                 apiRequest = ApiRequest(),

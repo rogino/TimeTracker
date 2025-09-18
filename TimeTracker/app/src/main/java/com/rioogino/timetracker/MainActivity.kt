@@ -165,6 +165,7 @@ class MainActivity : ComponentActivity() {
 
         apiRequest = ApiRequest()
         apiRequest.context = applicationContext
+        apiRequest.quotaListener = model
         preferences.initApiRequest(apiRequest)
 
         handler = Handler(Looper.getMainLooper())

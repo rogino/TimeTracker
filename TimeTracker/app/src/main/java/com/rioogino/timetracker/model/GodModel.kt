@@ -4,7 +4,7 @@ import android.util.Log
 import androidx.compose.runtime.*
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.CoroutineScope
-import com.rioogino.timetracker.*
+import com.rioogino.timetracker.* // Assuming QuotaUpdateListener is in this package
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
@@ -17,23 +17,26 @@ fun getTagsFromEntries(entries: Collection<TimeEntry>): List<String> {
     return tags.toList().sorted()
 }
 
-// TODO https://dev.to/zachklipp/implementing-snapshot-aware-data-structures-3pi8
 class GodModel(
-    /// Map of project IDs to projects
     projects: Map<Long, Project>,
-    /// Time entries sorted by start time, newest first
     timeEntries: List<TimeEntry>,
     tags: List<String>? = null
-) : ViewModel() {
+) : ViewModel(), QuotaUpdateListener { // Implement QuotaUpdateListener
     var projects = mutableStateMapOf<Long, Project>()
     var tags = mutableStateListOf<String>()
 
-    /// Should not be modified directly: use methods to do so
     var timeEntries = mutableStateListOf<TimeEntry>()
 
     private var entriesMap: MutableMap<Long?, TimeEntry>
 
     var lastUpdated by mutableStateOf<Instant?>(null)
+
+    // --- API Quota State ---
+    var apiQuotaRemaining by mutableStateOf<Int?>(null)
+        private set
+    var apiQuotaResetTimestamp by mutableStateOf<Instant?>(null) // Changed from apiQuotaResetsInSecs (Long?) to Instant?
+        private set
+    // --- End API Quota State ---
 
     init {
         this.projects.putAll(projects)
@@ -47,6 +50,12 @@ class GodModel(
         }
     }
 
+    override fun onQuotaUpdated(remaining: Int?, resetTimestamp: Instant?) { // Signature updated
+        apiQuotaRemaining = remaining
+        apiQuotaResetTimestamp = resetTimestamp // Assignment updated
+        Log.d(TAG, "GodModel Quota Updated: Remaining=$apiQuotaRemaining, ResetTimestamp=$apiQuotaResetTimestamp")
+    }
+
     val currentEntry: TimeEntry?
         get() {
             val first = timeEntries.firstOrNull()
@@ -58,7 +67,6 @@ class GodModel(
 
     val mostRecentEntry: TimeEntry? get() = timeEntries.firstOrNull()
 
-    /// Saved value of the currenly edited entry
     var currentlyEditedEntrySaveState: TimeEntry? by mutableStateOf(null)
     var currentlyEditedEntry = TimeEntryObservable()
 
@@ -108,11 +116,11 @@ class GodModel(
             }
         }
 
-        var entries = entriesMap.values.toMutableList()
-        entries.sortByDescending { it.startTime }
+        var entriesList = entriesMap.values.toMutableList()
+        entriesList.sortByDescending { it.startTime }
 
         timeEntries.clear()
-        timeEntries.addAll(entries)
+        timeEntries.addAll(entriesList)
     }
 
 
@@ -121,35 +129,33 @@ class GodModel(
         apiRequest: ApiRequest,
         onEnd: (Throwable?) -> Unit
     ) {
+        apiRequest.quotaListener = this 
+
         makeConcurrentRequests(
             coroutineScope = coroutineScope, {
                 lastUpdated = Instant.now()
                 onEnd(it)
             },
             {
-                apiRequest?.getTimeEntries(
+                apiRequest.getTimeEntries(
                     startDate = Instant.now().minusDays(7),
                     endDate = Instant.now().plusDays(1)
                 )?.let { addEntries(it) }
             },
             {
-                apiRequest?.getProjects()?.let {
+                apiRequest.getProjects()?.let {
                     setProjects(it)
                 }
             },
             {
-                apiRequest?.getStringTags()?.let {
+                apiRequest.getStringTags()?.let {
                     tags.clear()
-
                     tags.addAll(it)
                 }
             }
         )
     }
 
-    /// Returns that most recent stopped entry if one exists within the given time period
-    /// - Parameter currentlyEditedEntryId: if this is the most recent entry, it will return the
-    /// stop time for the second most recent entry
     private fun lastEntryStopTime(currentlyEditedEntryId: Long?, withinLastNDays: Long = 1): Instant? {
         val mostRecent = timeEntries.firstOrNull()
         var lastEntryStopTime: Instant? = null
@@ -160,7 +166,6 @@ class GodModel(
             lastEntryStopTime = timeEntries[1].endTime
         }
         if (lastEntryStopTime?.isBefore(Instant.now().minusDays(withinLastNDays)) == true) {
-            // Max age of 1 day
             lastEntryStopTime = null
         }
 
@@ -181,35 +186,10 @@ class GodModel(
         this.projects.putAll(projects.associateBy { it.id })
     }
 
-    /// Must be in order already
     fun setEntries(entries: Collection<TimeEntry>) {
         timeEntries.clear()
         timeEntries.addAll(entries)
     }
-
-
-    /// - Parameter timeEntries: time entries sorted by start time, newest first
-//    fun addContiguousEntries(timeEntries: List<TimeEntry>) {
-//        if (timeEntries.isEmpty()) return;
-//        val startIndex =
-//            this.timeEntries.indexOfFirst { timeEntries.first().startTime <= it.startTime }
-//        val endIndex = this.timeEntries.indexOfLast { it.startTime <= timeEntries.last().startTime }
-//
-//        Log.d(TAG, "startElements = 0 to ${startIndex}")
-//        Log.d(TAG, "endElements = ${endIndex} to ${this.timeEntries.count() - 1} (if endIndex != -1)")
-//        val endElements = this.timeEntries.slice(endIndex + 1 until this.timeEntries.count())
-//
-//        if (this.timeEntries.isNotEmpty() && startIndex != -1) {
-//            Log.d(TAG, "remove time entries in range = ${if (startIndex == -1) 0 else startIndex}-${if (endIndex == -1) this.timeEntries.count() - 1 else endIndex}")
-//            this.timeEntries.removeRange(
-//                if (startIndex == -1) 0 else startIndex,
-//                if (endIndex == -1) this.timeEntries.count() else endIndex + 1
-//            )
-//        }
-//        Log.d(TAG, "Array now has ${this.timeEntries.count()} items")
-//        this.timeEntries.addAll(timeEntries)
-//        endElements?.let { this.timeEntries.addAll(it) }
-//    }
 
     constructor(projects: List<Project>, timeEntries: List<TimeEntry>) : this(
         projects = projects.associateBy { it.id },
@@ -221,11 +201,14 @@ class GodModel(
         timeEntries = emptyList()
     )
 
-
     fun debugPrintEntries() {
         timeEntries.forEach {
             Log.d(TAG, it.description)
         }
+    }
+    
+    companion object {
+        private const val TAG = "GodModel"
     }
 }
 
@@ -271,63 +254,3 @@ val mockModel = GodModel(
         )
     ).sortedByDescending { it.startTime }
 )
-
-
-//fun testAdd() {
-//    val t = Instant.now()
-//
-//    val testInitial = listOf<TimeEntry>(
-//        TimeEntry(startTime = t, description = "0"),
-//        TimeEntry(startTime = t.plusSeconds(1), description = "1"),
-//        TimeEntry(startTime = t.plusSeconds(2), description = "2"),
-//    )
-//    val testModel = GodModel(emptyList(), emptyList())
-//    testModel.addContiguousEntries(testInitial)
-//    testModel.debugPrintEntries()
-//
-//
-//    Log.d(TAG, "Re-adding same entries")
-//    testModel.addContiguousEntries(testInitial)
-//    testModel.debugPrintEntries()
-//
-//    Log.d(TAG, "Add later overlap")
-//    testModel.addContiguousEntries(
-//        listOf(
-//            TimeEntry(startTime = t.plusSeconds(2), description = "2"),
-//            TimeEntry(startTime = t.plusSeconds(3), description = "3"),
-//            TimeEntry(startTime = t.plusSeconds(4), description = "4"),
-//        )
-//    )
-//    testModel.debugPrintEntries()
-//
-//    Log.d(TAG, "Add later, no overlap")
-//    testModel.addContiguousEntries(
-//        listOf(
-//            TimeEntry(startTime = t.plusSeconds(6), description = "6"),
-//            TimeEntry(startTime = t.plusSeconds(7), description = "7"),
-//            TimeEntry(startTime = t.plusSeconds(8), description = "8"),
-//        )
-//    )
-//    testModel.debugPrintEntries()
-//
-//    Log.d(TAG, "Add prior, overlap")
-//    testModel.addContiguousEntries(
-//        listOf(
-//            TimeEntry(startTime = t.plusSeconds(-1), description = "-1"),
-//            TimeEntry(startTime = t.plusSeconds(0), description = "0"),
-//            TimeEntry(startTime = t.plusSeconds(1), description = "1"),
-//        )
-//    )
-//    testModel.debugPrintEntries()
-//
-//    Log.d(TAG, "Add prior, no overlap")
-//    testModel.addContiguousEntries(
-//        listOf(
-//            TimeEntry(startTime = t.plusSeconds(-6), description = "-6"),
-//            TimeEntry(startTime = t.plusSeconds(-5), description = "-5"),
-//            TimeEntry(startTime = t.plusSeconds(-4), description = "-4"),
-//        )
-//    )
-//    testModel.debugPrintEntries()
-//}
-//
