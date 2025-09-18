@@ -25,6 +25,7 @@ import com.rioogino.timetracker.model.mockModel
 import com.rioogino.timetracker.ui.theme.AppTheme
 import java.time.*
 import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle // Added import
 
 @Composable
 fun TimeEntryListItem(
@@ -37,17 +38,11 @@ fun TimeEntryListItem(
     val project = projects[timeEntry.projectId]
     val zonedStart = ZonedDateTime.ofInstant(timeEntry.startTime, zoneId)
 
-    val timeFormatter = remember(zoneId) { DateTimeFormatter.ofPattern("hh:mm a").withZone(zoneId) }
-    val shortTimeFormatter = remember(zoneId) { DateTimeFormatter.ofPattern("hh:mm").withZone(zoneId) }
+    val timeFormatter = remember(zoneId) { DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withZone(zoneId) }
 
     var timeText = zonedStart.format(timeFormatter)
     timeEntry.endTime?.let { endTime ->
         val zonedEnd = ZonedDateTime.ofInstant(endTime, zoneId)
-        // Check if start and end are on the same day and same AM/PM period
-        if (zonedStart.toLocalDate().isEqual(zonedEnd.toLocalDate()) && 
-            (zonedStart.hour < 12 == zonedEnd.hour < 12 || zonedStart.hour == 12 || zonedEnd.hour == 12) ) {
-            timeText = zonedStart.format(shortTimeFormatter)
-        }
         timeText += " - ${zonedEnd.format(timeFormatter)}"
     } ?: run {
         timeText = stringResource(R.string.time_entry_started_time, timeText)
@@ -86,8 +81,8 @@ fun TimeEntryListItem(
                 style = MaterialTheme.typography.bodyMedium, // M3 Typography
                 color = MaterialTheme.colorScheme.onSurfaceVariant, // M3 Color
                 maxLines = 1,
+                overflow = TextOverflow.Clip, // Ensure clipping
                 modifier = Modifier
-                    .width(IntrinsicSize.Min) // Min intrinsic width for duration
                     .padding(start = 8.dp) // Increased padding for separation
             )
         }
@@ -141,8 +136,8 @@ fun TimeEntryListItem(
                 style = MaterialTheme.typography.bodySmall, // M3 Typography
                 color = MaterialTheme.colorScheme.onSurfaceVariant, // M3 Color
                 maxLines = 1,
-                overflow = TextOverflow.Visible, // Keep as Visible if that's intended for time
-                modifier = Modifier.width(IntrinsicSize.Min) // Ensure time is not crunched
+                overflow = TextOverflow.Clip,
+                modifier = Modifier // Removed .width(IntrinsicSize.Min)
             )
         }
     }
