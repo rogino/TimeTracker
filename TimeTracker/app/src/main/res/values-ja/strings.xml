@@ -56,4 +56,7 @@
     <string name="use_system_theme">システム テーマ</string>
     <string name="clear_text_field">クリア</string>
     <string name="selected">選択済み</string>
+    <string name="not_set">未設定</string>
+    <string name="select_date">日付を選択</string>
+    <string name="select_time">時間を選択</string>
 </resources>

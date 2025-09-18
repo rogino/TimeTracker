@@ -1,41 +1,44 @@
 package com.rioogino.timetracker.components
 
+import android.content.res.Configuration
 import android.text.format.DateFormat
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.LinearOutSlowInEasing
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.LocalIndication // Added for clickable fix
+import androidx.compose.foundation.border 
+import androidx.compose.foundation.clickable 
+import androidx.compose.foundation.interaction.MutableInteractionSource // Added for clickable fix
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.*
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton 
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton 
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.draw.clip 
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.text.TextStyle 
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.rioogino.timetracker.components.UnelevatedButtonElevation
 import com.vanpra.composematerialdialogs.MaterialDialog
 import com.vanpra.composematerialdialogs.datetime.date.datepicker
 import com.vanpra.composematerialdialogs.datetime.time.timepicker
 import com.vanpra.composematerialdialogs.rememberMaterialDialogState
 import com.rioogino.timetracker.R
-import java.text.Format
+import com.rioogino.timetracker.ui.theme.AppTheme
 import java.text.SimpleDateFormat
 import java.time.*
 import java.time.format.DateTimeFormatter
-
+import java.time.format.FormatStyle
 
 @Composable
 fun SelectTimeView(
     label: String,
     date: Instant?,
     zoneId: ZoneId,
-    lastStopTime: Instant?,
+    lastStopTime: Instant?, 
     unsetText: String?,
     now: Instant?,
     setDate: (Instant?) -> Unit,
@@ -45,232 +48,268 @@ fun SelectTimeView(
     val dateDialog = rememberMaterialDialogState()
     val timeDialog = rememberMaterialDialogState()
     var isExpanded by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() } // Added for clickable fix
 
-    val localDateTime = ZonedDateTime.ofInstant(date ?: now ?: Instant.now(), zoneId)
-    val localDate = localDateTime.toLocalDate()
-    val localTime = localDateTime.toLocalTime()
+    val stableNowFallback = remember { Instant.now() }
+    val currentInstantForDisplay = date ?: now ?: stableNowFallback
 
-    val dateFormat: Format = DateFormat.getDateFormat(LocalContext.current)
-    val datePattern: String = (dateFormat as SimpleDateFormat).toLocalizedPattern()
-    val timePattern: String = if (date != null) "hh:mm a" else "hh:mm:ss a"
-    val dateFormatter = DateTimeFormatter.ofPattern(datePattern)
-    val timeFormatter = DateTimeFormatter.ofPattern(timePattern)
+    val localDateTime = remember(currentInstantForDisplay, zoneId) { 
+        ZonedDateTime.ofInstant(currentInstantForDisplay, zoneId)
+    }
+    val localDate = remember(localDateTime) { localDateTime.toLocalDate() }
+    val localTime = remember(localDateTime) { localDateTime.toLocalTime() }
 
-    val outlinedTextFieldLikeButtonColors: ButtonColors = ButtonDefaults.buttonColors(
-        backgroundColor = MaterialTheme.colors.background,
-        contentColor = LocalContentColor.current.copy(LocalContentAlpha.current)
-    )
-    val outlinedBoringButtonColors: ButtonColors = ButtonDefaults.outlinedButtonColors(
-        contentColor = LocalContentColor.current.copy(LocalContentAlpha.current)
-    )
-    val buttonBorder = BorderStroke(
-        ButtonDefaults.outlinedBorder.width,
-        ButtonDefaults.outlinedBorder.brush
-    )
+    val context = LocalContext.current
+    val systemDateFormat = remember { DateFormat.getDateFormat(context) }
+    val datePattern = remember(systemDateFormat) { (systemDateFormat as SimpleDateFormat).toLocalizedPattern() }
+    val timePattern = remember(date) { if (date != null) "hh:mm a" else "hh:mm:ss a" }
+    
+    val dateFormatter = remember(datePattern, zoneId) { DateTimeFormatter.ofPattern(datePattern).withZone(zoneId) }
+    val timeFormatter = remember(timePattern, zoneId) { DateTimeFormatter.ofPattern(timePattern).withZone(zoneId) }
 
     fun toggleExpand() {
-        isExpanded = !isExpanded
+        if (allowEditing) isExpanded = !isExpanded
     }
-    Button(
-        onClick = { toggleExpand() },
-        colors = outlinedTextFieldLikeButtonColors,
-        shape = RectangleShape,
-        contentPadding = PaddingValues(0.dp),
-        elevation = UnelevatedButtonElevation(),
-        modifier = Modifier
-            .defaultMinSize(minWidth = 0.dp, minHeight = 0.dp)
-            .background(
-                MaterialTheme.colors.background,
-                TextFieldDefaults.OutlinedTextFieldShape
-            )
-            .border(
-                TextFieldDefaults.UnfocusedBorderThickness,
-                TextFieldDefaults
-                    .textFieldColors()
-                    .indicatorColor(
-                        enabled = false,
-                        isError = false,
-                        interactionSource = remember { MutableInteractionSource() },
-                    ).value,
-                TextFieldDefaults.OutlinedTextFieldShape
-            )
-            .animateContentSize(
-                animationSpec = tween(
-                    durationMillis = 200,
-                    easing = LinearOutSlowInEasing
-                )
-            )
-            .then(modifier)
-    ) {
-        Column() {
-            val buttonHorizontalPadding =
-                ButtonDefaults.ContentPadding.calculateEndPadding(LayoutDirection.Ltr)
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = label, style = MaterialTheme.typography.body1,
-                    modifier = Modifier.padding(start = buttonHorizontalPadding)
-                )
-                Row() {
-                    Button(
-                        onClick = { if (isExpanded) dateDialog.show() else toggleExpand() },
-                        colors = outlinedTextFieldLikeButtonColors,
-                        enabled = allowEditing,
-                        border = if (isExpanded) buttonBorder else null,
-                        elevation = if (isExpanded) ButtonDefaults.elevation() else UnelevatedButtonElevation(),
-                        modifier = Modifier.padding(end = 10.dp)
-                    ) {
-                        var dateText = dateFormatter.format(localDateTime)
-                        if (localDate.isEqual(LocalDate.now())) {
-                            dateText = stringResource(R.string.today)
-                        } else if (localDate.isEqual(LocalDate.now().minusDays(1))) {
-                            dateText = stringResource(R.string.yesterday)
-                        }
-                        Text(
-                            text = dateText,
-                            style = MaterialTheme.typography.body1,
-                        )
-                    }
 
-                    Button(
-                        onClick = { if (isExpanded) timeDialog.show() else toggleExpand() },
-                        colors = outlinedTextFieldLikeButtonColors,
-                        border = if (isExpanded) buttonBorder else null,
-                        enabled = allowEditing,
-                        elevation = if (isExpanded) ButtonDefaults.elevation() else UnelevatedButtonElevation(),
-                        contentPadding = PaddingValues(start = 0.dp, end = buttonHorizontalPadding),
-                        modifier = Modifier
-                            .padding(end = buttonHorizontalPadding)
-                            .width(120.dp),
-                        // Wide enough to fit in widest date (with seconds)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End
-                        ) {
-                            Text(
-                                text = timeFormatter.format(localDateTime),
-                                style = MaterialTheme.typography.body1,
-                            )
-                        }
-
-                    }
-                }
-            }
-
-            if (isExpanded) {
-                SelectTimeViewDeltaButtons(
-                    date = date,
-                    setDate = setDate,
-                    lastStopTime = lastStopTime,
-                    unsetText = unsetText,
-                    buttonColors = outlinedBoringButtonColors,
-                    buttonBorder = buttonBorder,
-                    allowEditing = allowEditing
-                )
-            }
-        }
+    Column(modifier = modifier) { // Outermost Column
+        // MaterialDialogs are now the FIRST children of the outer Column.
         MaterialDialog(
             dialogState = dateDialog,
             buttons = {
-                positiveButton(stringResource(R.string.ok))
-                positiveButton(stringResource(R.string.cancel))
+                positiveButton(stringResource(R.string.ok), textStyle = TextStyle(color = MaterialTheme.colorScheme.primary))
+                negativeButton(stringResource(R.string.cancel), textStyle = TextStyle(color = MaterialTheme.colorScheme.primary))
             }
         ) {
-            datepicker(initialDate = localDate) { date ->
-                val localDateTime = LocalDateTime.of(date, localTime)
-                val instant = localDateTime.toInstant(zoneId.rules.getOffset(localDateTime))
-                setDate(instant)
+            datepicker(initialDate = localDate, title = stringResource(R.string.select_date)) { newDate ->
+                val newLocalDateTime = LocalDateTime.of(newDate, localTime)
+                setDate(newLocalDateTime.atZone(zoneId).toInstant())
             }
         }
 
         MaterialDialog(
             dialogState = timeDialog,
             buttons = {
-                positiveButton(stringResource(R.string.ok))
-                positiveButton(stringResource(R.string.cancel))
+                positiveButton(stringResource(R.string.ok), textStyle = TextStyle(color = MaterialTheme.colorScheme.primary))
+                negativeButton(stringResource(R.string.cancel), textStyle = TextStyle(color = MaterialTheme.colorScheme.primary))
             }
         ) {
-            timepicker(initialTime = localTime) { time ->
-                val localDateTime = LocalDateTime.of(localDate, time)
-                val instant = localDateTime.toInstant(zoneId.rules.getOffset(localDateTime))
-                setDate(instant)
+            timepicker(initialTime = localTime, title = stringResource(R.string.select_time), is24HourClock = DateFormat.is24HourFormat(context)) { newTime ->
+                val newLocalDateTime = LocalDateTime.of(localDate, newTime)
+                setDate(newLocalDateTime.atZone(zoneId).toInstant())
             }
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 56.dp) 
+                .clip(MaterialTheme.shapes.extraSmall) 
+                .border(
+                    width = 1.dp,
+                    color = if (isExpanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                    shape = MaterialTheme.shapes.extraSmall
+                )
+                // Updated clickable modifier
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = LocalIndication.current,
+                    enabled = allowEditing, 
+                    onClick = ::toggleExpand
+                )
+                .padding(horizontal = 16.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f) 
+                )
+
+                val displayDateText = when {
+                    date == null -> stringResource(R.string.not_set)
+                    localDate.isEqual(LocalDate.now(zoneId)) -> stringResource(R.string.today)
+                    localDate.isEqual(LocalDate.now(zoneId).minusDays(1)) -> stringResource(R.string.yesterday)
+                    else -> dateFormatter.format(localDateTime)
+                }
+
+                TextButton(
+                    onClick = { if (allowEditing) dateDialog.show() }, 
+                    enabled = allowEditing && date != null,
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Text(displayDateText)
+                }
+
+                TextButton(
+                    onClick = { if (allowEditing) timeDialog.show() }, 
+                    enabled = allowEditing && date != null,
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Text(timeFormatter.format(localDateTime))
+                }
+            }
+        }
+        
+        if (isExpanded && allowEditing) {
+            Spacer(Modifier.height(8.dp))
+            SelectTimeViewDeltaButtons(
+                currentDate = date,
+                setDate = setDate,
+                lastStopTime = lastStopTime,
+                unsetText = unsetText,
+                nowForDelta = now ?: stableNowFallback, // Use stable now reference
+                zoneId = zoneId,
+                allowEditing = allowEditing
+            )
         }
     }
 }
 
 @Composable
 fun SelectTimeViewDeltaButtons(
-    date: Instant?,
+    currentDate: Instant?,
     setDate: (Instant?) -> Unit,
     lastStopTime: Instant?,
     unsetText: String?,
-    buttonColors: ButtonColors = ButtonDefaults.outlinedButtonColors(),
-    buttonBorder: BorderStroke = ButtonDefaults.outlinedBorder,
-    allowEditing: Boolean = true
+    nowForDelta: Instant, 
+    zoneId: ZoneId,
+    allowEditing: Boolean
 ) {
-    Column() {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
         Row(
-            horizontalArrangement = Arrangement.Center,
+            horizontalArrangement = Arrangement.SpaceEvenly,
             modifier = Modifier.fillMaxWidth()
         ) {
-            for (i in arrayOf<Long?>(-5, -1, 1, 5, null)) {
-                Button(
-                    onClick = {
-                        setDate(
-                            if (i == null) Instant.now() else date!!.plusSeconds(
-                                60 * i
-                            )
-                        )
+            val increments = listOf(-5L, -1L, 1L, 5L)
+            increments.forEach { min ->
+                OutlinedButton(
+                    onClick = { 
+                        currentDate?.let { setDate(it.plusSeconds(min * 60)) }
                     },
-                    colors = buttonColors,
-                    enabled = allowEditing && (i == null || date != null),
-                    contentPadding = PaddingValues(horizontal = 8.dp),
-                    border = buttonBorder,
-                    modifier = Modifier
-                        .defaultMinSize(
-                            minWidth = ButtonDefaults.MinHeight,
-                            minHeight = ButtonDefaults.MinHeight,
-                        )
-                        .padding(horizontal = 10.dp)
+                    enabled = allowEditing && currentDate != null,
+                    modifier = Modifier.padding(horizontal = 2.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp)
                 ) {
-                    Text(
-                        text = if (i == null) stringResource(R.string.now)
-                        else (if (i > 0) "+$i" else "$i")
-                    )
+                    Text(text = "${if (min > 0) "+" else ""}$min")
                 }
             }
         }
+        Spacer(Modifier.height(4.dp))
         Row(
-            horizontalArrangement = Arrangement.Center,
+            horizontalArrangement = Arrangement.SpaceEvenly,
             modifier = Modifier.fillMaxWidth()
         ) {
+            OutlinedButton(
+                onClick = { setDate(nowForDelta) }, 
+                enabled = allowEditing,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            ) {
+                Text(stringResource(R.string.now))
+            }
             if (lastStopTime != null) {
-                Button(
+                OutlinedButton(
                     onClick = { setDate(lastStopTime) },
-                    colors = buttonColors,
-                    border = buttonBorder,
                     enabled = allowEditing,
-                    modifier = Modifier.padding(horizontal = 10.dp)
+                    modifier = Modifier.padding(horizontal = 4.dp)
                 ) {
-                    Text(text = stringResource(R.string.last_stop_time))
+                    Text(stringResource(R.string.last_stop_time))
                 }
             }
             if (unsetText != null) {
-                Button(
+                OutlinedButton(
                     onClick = { setDate(null) },
-                    colors = buttonColors,
-                    border = buttonBorder,
-                    enabled = allowEditing && date != null,
-                    modifier = Modifier.padding(horizontal = 10.dp)
+                    enabled = allowEditing && currentDate != null,
+                    modifier = Modifier.padding(horizontal = 4.dp)
                 ) {
                     Text(text = unsetText)
                 }
             }
+        }
+    }
+}
+
+@Preview(showBackground = true, name = "SelectTimeView Light - Expanded Placeholder")
+@Composable
+fun SelectTimeView_Preview_Light_Set_Expanded() {
+    AppTheme(useDarkTheme = false) {
+        Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.padding(16.dp)) {
+            val previewNow = remember { Instant.now() }
+            SelectTimeView(
+                label = "Start Time (Click to Expand)",
+                date = previewNow.minusSeconds(3600),
+                zoneId = ZoneId.systemDefault(),
+                lastStopTime = previewNow.minusSeconds(7200),
+                unsetText = "Ongoing",
+                now = previewNow,
+                setDate = {},
+                allowEditing = true
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true, name = "SelectTimeView Dark - Set (Restored Box)", uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+fun SelectTimeView_Preview_Dark_Set() {
+    AppTheme(useDarkTheme = true) {
+        Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.padding(16.dp)) {
+            val previewNow = remember { Instant.now() }
+            SelectTimeView(
+                label = "End Time",
+                date = previewNow,
+                zoneId = ZoneId.systemDefault(),
+                lastStopTime = previewNow.minusSeconds(3600),
+                unsetText = "Current",
+                now = previewNow,
+                setDate = {},
+                allowEditing = true
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true, name = "SelectTimeView Light - Not Set (Restored Box)")
+@Composable
+fun SelectTimeView_Preview_Light_Not_Set() {
+    AppTheme(useDarkTheme = false) {
+        Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.padding(16.dp)) {
+            val previewNow = remember { Instant.now() } 
+            SelectTimeView(
+                label = "End Time",
+                date = null, 
+                zoneId = ZoneId.systemDefault(),
+                lastStopTime = previewNow.minusSeconds(3600),
+                unsetText = "Track",
+                now = previewNow, 
+                setDate = {},
+                allowEditing = true
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true, name = "SelectTimeView Dark - Not Set (Restored Box)", uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+fun SelectTimeView_Preview_Dark_Not_Set() {
+    AppTheme(useDarkTheme = true) {
+        Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.padding(16.dp)) {
+            val previewNow = remember { Instant.now() } 
+            SelectTimeView(
+                label = "End Time",
+                date = null, 
+                zoneId = ZoneId.systemDefault(),
+                lastStopTime = previewNow.minusSeconds(3600),
+                unsetText = "Track",
+                now = previewNow, 
+                setDate = {},
+                allowEditing = true
+            )
         }
     }
 }

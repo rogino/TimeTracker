@@ -48,7 +48,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.LayoutDirection
+// import androidx.compose.ui.unit.LayoutDirection // Not needed for this fix
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
 // import androidx.compose.ui.unit.sp // Not directly used, Text styles come from MaterialTheme
@@ -171,7 +171,7 @@ fun TimeEntryListPage(
     isDarkMode: Boolean? = null,
     setTheme: ((Boolean?) -> Unit)? = null,
     isRefreshing: MutableState<Boolean> = remember { mutableStateOf(false) }, 
-    contentPadding: PaddingValues = PaddingValues(),
+    contentPadding: PaddingValues = PaddingValues(), // This comes from Scaffold
     vm: ListPageViewModel = viewModel(),
 ) {
     var currentlyUpdatingEntry by remember { mutableStateOf(false) }
@@ -275,7 +275,7 @@ fun TimeEntryListPage(
                 enter = slideInVertically { height } + fadeIn(),
                 exit = slideOutVertically { height } + fadeOut()
             ) {
-                val bottomPadding = max(
+                val bottomPaddingForCurrentEntry = max(
                     WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
                     10.dp
                 )
@@ -300,8 +300,8 @@ fun TimeEntryListPage(
                         now = now,
                         zoneId = zoneId,
                         modifier = Modifier
-                            .padding(horizontal = contentPadding.calculateLeftPadding(LayoutDirection.Ltr))
-                            .padding(bottom = bottomPadding, top = 6.dp),
+                            .padding(horizontal = 16.dp) 
+                            .padding(bottom = bottomPaddingForCurrentEntry, top = 6.dp), // Restored padding
                     )
                     TimeEntryListItemDropdownMenu(
                         entry = entry,
@@ -317,7 +317,7 @@ fun TimeEntryListPage(
                 }
             }
         }
-    ) { scaffoldPaddingValues ->
+    ) { scaffoldPaddingValues -> // This is the padding from Scaffold for its content area
         val pullRefreshState = rememberPullRefreshState(isRefreshing.value, {
             apiRequest?.let { currentApiRequest ->
                 isRefreshing.value = true
@@ -335,19 +335,20 @@ fun TimeEntryListPage(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(scaffoldPaddingValues) 
+                .padding(scaffoldPaddingValues) // Apply Scaffold's padding here
                 .pullRefresh(pullRefreshState)
         ) {
             if (model.timeEntries.isNotEmpty()) {
                 TimeEntryListView(
-                    modifier = modifier, 
+                    modifier = modifier, // Pass the original modifier from TimeEntryListPage parameters
                     entries = model.timeEntries,
                     projects = model.projects,
                     entryCurrentlyOngoing = model.currentEntry != null,
                     lastEntryStopTime = { model.lastEntryStopTime() },
                     zoneId = zoneId,
                     now = now,
-                    contentPadding = contentPadding, 
+                    // Pass the scaffoldPaddingValues to TimeEntryListView so it can handle bottom padding for nav bars
+                    contentPaddingForList = scaffoldPaddingValues, 
                     editEntry = ::editEntry,
                     stopEntry = ::stopEntry,
                     resumeEntry = ::resumeEntry,
@@ -362,8 +363,8 @@ fun TimeEntryListPage(
                         }, {
                             Log.d(TAG, "Downloading older entries, ${oldest}")
                             apiRequest?.getTimeEntries(
-                                startDate = oldest.minus(java.time.Duration.ofDays(7)), // Fixed
-                                endDate = oldest.plus(java.time.Duration.ofDays(1))    // Fixed
+                                startDate = oldest.minus(java.time.Duration.ofDays(7)),
+                                endDate = oldest.plus(java.time.Duration.ofDays(1))
                             )?.let { model.addEntries(it) }
                         })
                     }
@@ -411,7 +412,7 @@ fun TimeEntryListView(
     lastEntryStopTime: (() -> Instant?)? = null,
     zoneId: ZoneId = Clock.systemDefaultZone().zone,
     now: State<Instant> = remember { mutableStateOf(Instant.now()) }, 
-    contentPadding: PaddingValues = PaddingValues(), 
+    contentPaddingForList: PaddingValues = PaddingValues(), // Renamed for clarity, gets scaffoldPaddingValues
     editEntry: ((TimeEntry?) -> Unit)? = null,
     stopEntry: ((TimeEntry) -> Unit)? = null,
     resumeEntry: ((TimeEntry) -> Unit)? = null,
@@ -427,8 +428,9 @@ fun TimeEntryListView(
     }
     LazyColumn(
         state = listState, 
-        modifier = modifier.padding(horizontal = contentPadding.calculateLeftPadding(LayoutDirection.Ltr)),
-        contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding())
+        modifier = modifier, // Removed horizontal padding from here
+        // Apply bottom padding from the Scaffold to ensure last item is not obscured by system bars
+        contentPadding = PaddingValues(bottom = contentPaddingForList.calculateBottomPadding()) 
     ) {
         groupEntries(entries, zoneId, now.value, context).forEachIndexed { i, group -> 
             stickyHeader { 
@@ -436,7 +438,7 @@ fun TimeEntryListView(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 8.dp, horizontal = 16.dp), 
+                            .padding(vertical = 8.dp, horizontal = 16.dp), // Item content padding
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.Bottom
                     ) {
@@ -456,6 +458,7 @@ fun TimeEntryListView(
 
             items(items = group.entries, key = { it.id ?: java.util.UUID.randomUUID().toString() }) { entry -> 
                 Divider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 0.5.dp) 
+                // Box for each item also has horizontal padding for its content
                 Box(modifier = Modifier.padding(horizontal = 16.dp)) { 
                     var dropdownOpen by remember(entry.id) { mutableStateOf(false) }
                     TimeEntryListItem(
@@ -572,7 +575,8 @@ fun TimeEntryListView_Preview_Light() {
                 entries = mockModel.timeEntries,
                 projects = mockModel.projects,
                 entryCurrentlyOngoing = false,
-                contentPadding = PaddingValues(16.dp)
+                // For preview, simulate some edge padding that might come from a Scaffold
+                contentPaddingForList = PaddingValues(bottom = 56.dp) 
             )
         }
     }
@@ -587,7 +591,7 @@ fun TimeEntryListView_Preview_Dark() {
                 entries = mockModel.timeEntries,
                 projects = mockModel.projects,
                 entryCurrentlyOngoing = false,
-                contentPadding = PaddingValues(16.dp)
+                contentPaddingForList = PaddingValues(bottom = 56.dp)
             )
         }
     }
@@ -603,7 +607,8 @@ fun TimeEntryListPage_Preview_Light() {
                 model = mockModel,
                 apiRequest = ApiRequest(),
                 context = LocalContext.current,
-                contentPadding = PaddingValues(0.dp),
+                // contentPadding for TimeEntryListPage is typically PaddingValues() unless it's nested further
+                contentPadding = PaddingValues(0.dp), 
                 vm = ListPageViewModel()
             )
         }

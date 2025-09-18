@@ -44,7 +44,7 @@
     <string name="api_error_http_code">HTTP error code %1$d received. %2$s</string>
     <string name="delete_time_entry">Delete Entry</string>
     <string name="last_stop_time">Last stop time</string>
-    <string name="now">now</string>
+    <string name="now">Now</string>
     <string name="ok">Ok</string>
     <string name="cancel">Cancel</string>
     <string name="login_page_title">Login to Toggl Track</string>
@@ -57,4 +57,7 @@
     <string name="use_system_theme">Use system theme</string>
     <string name="clear_text_field">Clear</string>
     <string name="selected">Selected</string>
+    <string name="not_set">Not set</string>
+    <string name="select_date">Select date</string>
+    <string name="select_time">Select time</string>
 </resources>
