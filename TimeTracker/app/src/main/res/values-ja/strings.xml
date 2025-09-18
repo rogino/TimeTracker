@@ -54,4 +54,6 @@
     <string name="use_dark_theme">ダーク モード</string>
     <string name="use_light_theme">ライト モード</string>
     <string name="use_system_theme">システム テーマ</string>
+    <string name="clear_text_field">クリア</string>
+    <string name="selected">選択済み</string>
 </resources>

@@ -55,4 +55,6 @@
     <string name="use_light_theme">Use light theme</string>
     <string name="use_dark_theme">Use dark theme</string>
     <string name="use_system_theme">Use system theme</string>
+    <string name="clear_text_field">Clear</string>
+    <string name="selected">Selected</string>
 </resources>
