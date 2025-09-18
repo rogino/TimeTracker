@@ -3,7 +3,7 @@
 <p align="center">
   <img
     width="100"
-    src="TimeTracker/icon/TimeTrackerLogoNoMargins.png"
+    src="TimeTracker/icon/icon-no-blur.svg"
     alt="App icon of a minimal, colorful stopwatch"
   />
 </p>

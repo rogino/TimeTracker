@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg clip-rule="evenodd" version="1.1" viewBox="0 0 1024 1024"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+
+  <defs>
+    <linearGradient id="BG" x1="704" x2="768" y1="256" y2="192" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#402b74" offset="0"/>
+      <stop stop-color="#4b27a5" offset="1"/>
+    </linearGradient>
+
+    <linearGradient id="LG" x1="0" x2="0" y1="0" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5a2880" offset="0"/>
+      <stop stop-color="#2a1e62" offset="1"/>
+    </linearGradient>
+
+    <linearGradient id="S" x1="0" x2="512" y1="0" y2="0" gradientUnits="userSpaceOnUse">
+      <stop stop-opacity=".25" offset="0"/>
+      <stop stop-color="#13246c" stop-opacity=".25" offset="1"/>
+    </linearGradient>
+
+    <linearGradient id="RG" x1="0" x2="0" y1="0" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ff0ca2" offset="0"/>
+      <stop stop-color="#cd155d" offset="1"/>
+    </linearGradient>
+
+    <radialGradient id="TG" cx="500" cy="60" r="110" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ff0ca2" offset="0"/>
+      <stop stop-color="#da0090" offset="1"/>
+    </radialGradient>
+
+    <!-- Fake blur gradient -->
+    <radialGradient id="softShadow" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="black" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="black" stop-opacity="0"/>
+    </radialGradient>
+
+    <path id="L" d="m450 105v33.5c-177.9 24.39-315 176.9-315 361.5 0 201.6 163.4 365 365 365v-390.9-329.1-10-30h-50z"/>
+    <path id="R" d="m500 105v30 10 720c201.6 0 365-163.4 365-365 0-184.6-137.1-337.1-315-361.5v-33.5h-50z"/>
+  </defs>
+
+  <g>
+    <path d="m785.2 160 53.03 53.03-85.25 85.25-53.03-53.03 85.25-85.25z" fill="url(#BG)"/>
+
+    <!-- Left side -->
+    <g>
+      <use fill="url(#LG)" xlink:href="#L"/>
+      <clipPath id="LC">
+        <use xlink:href="#L"/>
+      </clipPath>
+      <g clip-path="url(#LC)">
+        <!-- Fake blurred overlay -->
+        <path d="m-192 384 512-512 256 256-512 512"
+              fill="url(#S)" opacity="0.6"/>
+        <path d="m-192 384 512-512 256 256-512 512"
+              fill="url(#softShadow)" opacity="0.4"/>
+      </g>
+    </g>
+
+    <!-- Right side -->
+    <g>
+      <use fill="url(#RG)" xlink:href="#R"/>
+      <clipPath id="RC">
+        <use xlink:href="#R"/>
+      </clipPath>
+      <g clip-path="url(#RC)">
+        <path d="m-192 384 512-512 256 256-512 512"
+              fill="url(#S)" opacity="0.6"/>
+        <path d="m-192 384 512-512 256 256-512 512"
+              fill="url(#softShadow)" opacity="0.4"/>
+      </g>
+    </g>
+
+    <!-- Top glow & cross shapes -->
+    <g>
+      <path d="m420 15h160v90h-160v-90z" fill="url(#TG)"/>
+
+      <!-- Fake blurred highlight behind -->
+      <path d="m610.1 472.1-230.7 230.7c-15.42 15.42-40.43 15.42-55.85 0-15.42-15.42-15.42-40.43 0-55.85l230.7-230.7c15.42-15.42 40.43-15.42 55.85 0h1e-3c15.42 15.42 15.42 40.43 0 55.85z"
+            fill="url(#softShadow)" opacity="0.5"/>
+
+      <path d="m473.4 471.7 152.6-152.6c15.42-15.42 40.43-15.42 55.85 0s15.42 40.43 0 55.85l-152.6 152.6c-15.42 15.42-40.43 15.42-55.85 0-15.42-15.42-15.42-40.43 0-55.85z" fill="#fff"/>
+    </g>
+  </g>
+</svg>

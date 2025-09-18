@@ -133,7 +133,7 @@ fun LoginView(
                 } > 500.dp
             ) {
                 Image(
-                    painterResource(R.drawable.logo_no_margins_512),
+                    painterResource(R.drawable.icon_no_blur),
                     contentDescription = stringResource(R.string.icon),
                     contentScale = ContentScale.Fit,
                     modifier = Modifier
