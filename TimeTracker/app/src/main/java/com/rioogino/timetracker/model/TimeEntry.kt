@@ -14,7 +14,7 @@ import java.time.Duration
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.format.DateTimeParseException
-import java.util.*
+import java.util.Calendar
 
 val APP_IDENTIFIER = "com.rioogino.timetracker.timetracker"
 

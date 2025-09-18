@@ -1,10 +1,19 @@
 package com.rioogino.timetracker.model
 
 import android.util.Log
-import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.toMutableStateList
 import androidx.lifecycle.ViewModel
+import com.rioogino.timetracker.ApiRequest
+import com.rioogino.timetracker.QuotaUpdateListener
+import com.rioogino.timetracker.makeConcurrentRequests
+import com.rioogino.timetracker.minusDays
+import com.rioogino.timetracker.plusDays
 import kotlinx.coroutines.CoroutineScope
-import com.rioogino.timetracker.* // Assuming QuotaUpdateListener is in this package
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime

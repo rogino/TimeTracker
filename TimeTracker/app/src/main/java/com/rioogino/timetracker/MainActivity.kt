@@ -1,24 +1,23 @@
 package com.rioogino.timetracker // Corrected package name
 
+// import android.view.WindowManager // Not used
+// import androidx.compose.ui.graphics.Color // Not used
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-// import android.view.WindowManager // Not used
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.viewModels
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
-// import androidx.compose.ui.graphics.Color // Not used
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModel
@@ -28,15 +27,15 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import com.rioogino.timetracker.components.EditEntryPage
+import com.rioogino.timetracker.components.LoginView
+import com.rioogino.timetracker.components.TimeEntryListPage
+import com.rioogino.timetracker.model.GodModel
+import com.rioogino.timetracker.model.GodModelSerialized
+import com.rioogino.timetracker.ui.theme.AppTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import com.rioogino.timetracker.components.EditEntryPage // Corrected import path
-import com.rioogino.timetracker.components.LoginView // Corrected import path
-import com.rioogino.timetracker.components.TimeEntryListPage
-import com.rioogino.timetracker.model.GodModel // Corrected import path
-import com.rioogino.timetracker.model.GodModelSerialized // Corrected import path
-import com.rioogino.timetracker.ui.theme.AppTheme // Corrected import path
 import java.time.Instant
 import kotlin.properties.Delegates
 

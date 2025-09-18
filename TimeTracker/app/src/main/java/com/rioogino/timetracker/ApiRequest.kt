@@ -1,16 +1,28 @@
 package com.rioogino.timetracker
 
+// import com.beust.klaxon.Json // No longer needed
 import android.content.Context
 import android.util.Log
-// import com.beust.klaxon.Json // No longer needed
 import com.beust.klaxon.Klaxon
+import com.rioogino.timetracker.model.DateTimeConverter
+import com.rioogino.timetracker.model.Me
+import com.rioogino.timetracker.model.Project
+import com.rioogino.timetracker.model.TimeEntry
+import com.rioogino.timetracker.model.TogglTag
 import kotlinx.coroutines.suspendCancellableCoroutine
-import com.rioogino.timetracker.model.*
-import okhttp3.*
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.Credentials
+import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import okhttp3.Request.Builder
+import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
 import java.io.IOException
 import java.net.UnknownHostException
 import java.time.Instant

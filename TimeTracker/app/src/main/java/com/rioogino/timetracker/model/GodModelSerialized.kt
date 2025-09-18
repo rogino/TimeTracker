@@ -3,10 +3,10 @@ package com.rioogino.timetracker.model
 import android.content.Context
 import android.util.Log
 import com.beust.klaxon.Klaxon
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import com.rioogino.timetracker.TAG
 import com.rioogino.timetracker.minusDays
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.time.Instant

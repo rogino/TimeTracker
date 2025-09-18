@@ -1,31 +1,41 @@
 package com.rioogino.timetracker.components // Changed package
 
+// import androidx.compose.ui.graphics.Color // No longer needed for hardcoded gray
+// import androidx.compose.ui.unit.sp // Replaced by M3 Typography
 import android.content.res.Configuration
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.MaterialTheme // M3 Import
-import androidx.compose.material3.Text // M3 Import
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember // Added remember
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-// import androidx.compose.ui.graphics.Color // No longer needed for hardcoded gray
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-// import androidx.compose.ui.unit.sp // Replaced by M3 Typography
-import com.rioogino.timetracker.R // Added R import
-import com.rioogino.timetracker.durationFormatter // Added durationFormatter import
+import com.rioogino.timetracker.R
+import com.rioogino.timetracker.durationFormatter
 import com.rioogino.timetracker.model.Project
 import com.rioogino.timetracker.model.TimeEntry
 import com.rioogino.timetracker.model.mockModel
 import com.rioogino.timetracker.ui.theme.AppTheme
-import java.time.*
+import java.time.Clock
+import java.time.Duration
+import java.time.Instant
+import java.time.ZoneId
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle // Added import
+import java.time.format.FormatStyle
 
 @Composable
 fun TimeEntryListItem(

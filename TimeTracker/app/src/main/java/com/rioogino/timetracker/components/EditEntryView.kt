@@ -1,26 +1,35 @@
 package com.rioogino.timetracker.components
 
-import android.annotation.SuppressLint
-import android.content.Context
-import android.content.res.Configuration // Keep for potential future use or specific preview configs
-import androidx.compose.foundation.background
-import androidx.compose.foundation.interaction.InteractionSource
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 // Removed ExperimentalMaterialApi for M2 ExposedDropdownMenuBox, M3 is used
 // import androidx.compose.material.ExposedDropdownMenuDefaults // M2 - will be replaced by M3
+import android.annotation.SuppressLint
+import android.content.Context
+import android.content.res.Configuration
+import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.InteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Clear // For TextFieldClearButton (from LoginView.kt)
-import androidx.compose.material.icons.filled.Check // Added for SelectTagsDropdown
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenu // M3 DropdownMenu
-import androidx.compose.material3.DropdownMenuItem // M3 DropdownMenuItem
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox // M3 ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults // M3 for TrailingIcon
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -31,7 +40,14 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.State
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
@@ -40,18 +56,23 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.TextFieldValue // For TextFieldClearButton (from LoginView.kt)
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.rioogino.timetracker.ApiRequest
+import com.rioogino.timetracker.R
+import com.rioogino.timetracker.makeRequestsShowingToastOnError
+import com.rioogino.timetracker.model.GodModel
+import com.rioogino.timetracker.model.Project
+import com.rioogino.timetracker.model.TimeEntry
+import com.rioogino.timetracker.model.TimeEntryObservable
+import com.rioogino.timetracker.model.mockModel
+import com.rioogino.timetracker.ui.theme.AppTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import com.rioogino.timetracker.*
-import com.rioogino.timetracker.R
-import com.rioogino.timetracker.model.*
-import com.rioogino.timetracker.ui.theme.AppTheme
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
